@@ -1468,10 +1468,6 @@ export default function App() {
 
   const mainBgStyle = {
     backgroundColor: bgColor,
-    backgroundImage: state.settings.theme.bgImage ? `url(${state.settings.theme.bgImage})` : undefined,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundAttachment: 'fixed' as const,
     fontSize: state.settings.theme.fontSize ? `${state.settings.theme.fontSize}px` : '20px',
     fontFamily: state.settings.theme.fontFamily || '"Inter", sans-serif',
     ...customCardVariables
@@ -1510,36 +1506,37 @@ export default function App() {
     return isText ? { color: finalColor } : { backgroundColor: finalColor };
   };
 
-  const getNumberSizeClass = (category: 'hero' | 'hero-sub' | 'subhero' | 'subhero-sub' | 'secondary') => {
+  const getQuickAddNumberSizeClass = () => {
     const size = state.settings.theme.numberSize || 'normal';
-    if (size === 'large') {
-      if (category === 'hero') return 'text-6xl sm:text-8xl';
-      if (category === 'hero-sub') return 'text-3xl sm:text-4xl';
-      if (category === 'subhero') return 'text-4xl sm:text-5xl';
-      if (category === 'subhero-sub') return 'text-2xl sm:text-3xl';
-      if (category === 'secondary') return 'text-2xl';
+    
+    switch (size) {
+      case '1':
+      case 'large':
+        return 'text-2xl';
+      case '2':
+      case 'xlarge':
+        return 'text-3xl';
+      case '3':
+      case 'giant':
+        return 'text-4xl';
+      case '4':
+        return 'text-5xl';
+      case '5':
+        return 'text-6xl';
+      case '6':
+        return 'text-7xl';
+      case '7':
+        return 'text-8xl';
+      case '8':
+        return 'text-[5.5rem] md:text-[6rem]';
+      case '9':
+        return 'text-[6.5rem] md:text-[7rem]';
+      case '10':
+        return 'text-[7.5rem] md:text-[8rem]';
+      case 'normal':
+      default:
+        return 'text-xl';
     }
-    if (size === 'xlarge') {
-      if (category === 'hero') return 'text-7xl sm:text-9xl';
-      if (category === 'hero-sub') return 'text-4xl sm:text-5xl';
-      if (category === 'subhero') return 'text-5xl sm:text-6xl';
-      if (category === 'subhero-sub') return 'text-3xl sm:text-4xl';
-      if (category === 'secondary') return 'text-3xl';
-    }
-    if (size === 'giant') {
-      if (category === 'hero') return 'text-8xl sm:text-[10rem] md:text-[11rem]';
-      if (category === 'hero-sub') return 'text-5xl sm:text-6xl';
-      if (category === 'subhero') return 'text-6xl sm:text-7xl';
-      if (category === 'subhero-sub') return 'text-4xl sm:text-5xl';
-      if (category === 'secondary') return 'text-4xl';
-    }
-    // 'normal' or default
-    if (category === 'hero') return 'text-5xl sm:text-7xl';
-    if (category === 'hero-sub') return 'text-2xl sm:text-3xl';
-    if (category === 'subhero') return 'text-3xl sm:text-4xl';
-    if (category === 'subhero-sub') return 'text-xl sm:text-2xl';
-    if (category === 'secondary') return 'text-xl';
-    return '';
   };
 
   const getSolidColor = (color: string) => {
@@ -1553,15 +1550,6 @@ export default function App() {
 
   return (
     <div className={`min-h-screen ${textColor} transition-colors duration-500 pb-24 relative`} style={mainBgStyle}>
-      {state.settings.theme.bgImage && (
-        <div 
-          className="absolute inset-0 pointer-events-none transition-opacity duration-500" 
-          style={{ 
-            backgroundColor: bgColor, 
-            opacity: 1 - (state.settings.theme.bgOpacity ?? 0.3) 
-          }} 
-        />
-      )}
       <Toaster position="top-center" theme={isDark ? 'dark' : 'light'} richColors />
       {/* Header */}
       <header className="p-4 sm:p-6 pt-12 relative overflow-hidden">
@@ -1607,7 +1595,7 @@ export default function App() {
                   </div>
                   <div>
                     <p className={`${mutedTextColor} text-[9px] uppercase font-mono tracking-widest`}>Controle de Jornada</p>
-                    <p className={`${getNumberSizeClass('subhero')} font-extrabold font-mono tracking-tighter`}>
+                    <p className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tighter">
                       {formatElapsedTime(elapsedTime)}
                     </p>
                   </div>
@@ -1866,9 +1854,9 @@ export default function App() {
                         </button>
                       )}
                     </div>
-                    <h2 className={`${getNumberSizeClass('hero')} font-bold font-mono tracking-tight`}>
+                    <h2 className="text-5xl sm:text-7xl font-bold font-mono tracking-tight">
                       {targetCount}
-                      <span className={`${subMutedTextColor} ${getNumberSizeClass('hero-sub')}`}>
+                      <span className={`${subMutedTextColor} text-2xl sm:text-3xl`}>
                         /{targetCountGoal}
                       </span>
                     </h2>
@@ -2002,17 +1990,17 @@ export default function App() {
                           key={targetValue}
                           initial={{ scale: 0.95 }}
                           animate={{ scale: 1 }}
-                          className={`${getNumberSizeClass('hero')} font-bold font-mono tracking-tight`}
+                          className="text-5xl sm:text-7xl font-bold font-mono tracking-tight"
                         >
                           R$ {targetValue.toFixed(2)}
-                          <span className={`${subMutedTextColor} ${getNumberSizeClass('hero-sub')}`}>
+                          <span className={`${subMutedTextColor} text-2xl sm:text-3xl`}>
                             /{targetValueGoal}
                           </span>
                         </motion.h2>
                       ) : (
-                        <h2 className={`${getNumberSizeClass('hero')} font-bold font-mono tracking-tight`}>
+                        <h2 className="text-5xl sm:text-7xl font-bold font-mono tracking-tight">
                           R$ {targetValue.toFixed(2)}
-                          <span className={`${subMutedTextColor} ${getNumberSizeClass('hero-sub')}`}>
+                          <span className={`${subMutedTextColor} text-2xl sm:text-3xl`}>
                             /{targetValueGoal}
                           </span>
                         </h2>
@@ -2181,10 +2169,11 @@ export default function App() {
                       <button 
                         key={val}
                         onClick={() => quickAddRide(val, `Corrida R$ ${val}`)}
-                        className={`py-3 px-1 rounded-lg border text-xl font-bold uppercase tracking-widest transition-colors ${isDark ? 'border-white/10 hover:bg-white/5' : 'border-slate-300 hover:bg-slate-100 active:bg-slate-200 text-slate-800 shadow-sm'}`}
+                        className={`py-3 px-1 rounded-lg border font-bold uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-0.5 ${isDark ? 'border-white/10 hover:bg-white/5' : 'border-slate-300 hover:bg-slate-100 active:bg-slate-200 text-slate-800 shadow-sm'}`}
                         style={getStyle(state.settings.theme.valueBarColor, true)}
                       >
-                        +R$ {val}
+                        <span className="text-[10px] opacity-65 leading-none">+R$</span>
+                        <span className={`${getQuickAddNumberSizeClass()} leading-none`}>{val}</span>
                       </button>
                     ))}
                   </div>
@@ -2219,7 +2208,7 @@ export default function App() {
                       </button>
                     )}
                   </div>
-                  <h2 className={`${getNumberSizeClass('hero')} font-bold font-mono tracking-tight`}>
+                  <h2 className="text-5xl sm:text-7xl font-bold font-mono tracking-tight">
                     {formatElapsedTime(todayStats.journeyTime)}
                   </h2>
                   <p className={`${subMutedTextColor} text-[10px] font-mono mt-1 uppercase tracking-widest`}>
@@ -2626,7 +2615,7 @@ export default function App() {
                           } ${subMutedTextColor}`}
                         />
                       </div>
-                      <h4 className={`${getNumberSizeClass('subhero')} font-extrabold font-mono tracking-tight`}>R$ {monthlyStats.totalValue.toFixed(2)}</h4>
+                      <h4 className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tight">R$ {monthlyStats.totalValue.toFixed(2)}</h4>
                       {state.settings.goalTargetDate && selectedMonth === today.substring(0, 7) && (
                         <div className="text-[11px] font-mono font-bold text-orange-500 uppercase tracking-wider flex items-center gap-1.5 mt-1.5">
                           <Calendar size={12} className="text-orange-500 animate-pulse" />
@@ -2705,11 +2694,11 @@ export default function App() {
                   <div className="flex justify-between items-end">
                     <div>
                       <p className={`${mutedTextColor} text-xs uppercase font-mono tracking-widest mb-1`}>Meta Semanal</p>
-                      <h4 className={`${getNumberSizeClass('subhero')} font-extrabold font-mono tracking-tight`}>R$ {financeStats.week.totalRecebido.toFixed(2)}</h4>
+                      <h4 className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tight">R$ {financeStats.week.totalRecebido.toFixed(2)}</h4>
                     </div>
                     <div className="text-right">
                       <p className={`${subMutedTextColor} text-[10px] uppercase font-mono tracking-tighter`}>Faltam</p>
-                      <p className={`${getNumberSizeClass('secondary')} font-extrabold font-mono`}>R$ {Math.max(0, monthlyStats.weeklyNeeded - financeStats.week.totalRecebido).toFixed(2)}</p>
+                      <p className="text-xl sm:text-2xl font-extrabold font-mono">R$ {Math.max(0, monthlyStats.weeklyNeeded - financeStats.week.totalRecebido).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -2733,11 +2722,11 @@ export default function App() {
                   <div className="flex justify-between items-end">
                     <div>
                       <p className={`${mutedTextColor} text-xs uppercase font-mono tracking-widest mb-1`}>Meta Diária</p>
-                      <h4 className={`${getNumberSizeClass('subhero')} font-extrabold font-mono tracking-tight`}>R$ {financeStats.day.totalRecebido.toFixed(2)}</h4>
+                      <h4 className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tight">R$ {financeStats.day.totalRecebido.toFixed(2)}</h4>
                     </div>
                     <div className="text-right">
                       <p className={`${subMutedTextColor} text-[10px] uppercase font-mono tracking-tighter`}>Faltam</p>
-                      <p className={`${getNumberSizeClass('secondary')} font-extrabold font-mono`}>R$ {Math.max(0, monthlyStats.dailyNeeded - financeStats.day.totalRecebido).toFixed(2)}</p>
+                      <p className="text-xl sm:text-2xl font-extrabold font-mono">R$ {Math.max(0, monthlyStats.dailyNeeded - financeStats.day.totalRecebido).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -2769,11 +2758,11 @@ export default function App() {
                     <div className="flex gap-4">
                       <div className="text-right">
                         <p className="text-xs uppercase font-mono tracking-tighter text-green-500">Total Recebido</p>
-                        <p className={`${getNumberSizeClass('secondary')} font-extrabold font-mono text-green-500`}>R$ {financeStats[period].totalRecebido.toFixed(2)}</p>
+                        <p className="text-2xl font-extrabold font-mono text-green-500">R$ {financeStats[period].totalRecebido.toFixed(2)}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs uppercase font-mono tracking-tighter text-red-500">Despesas</p>
-                        <p className={`${getNumberSizeClass('secondary')} font-extrabold font-mono text-red-500`}>R$ {financeStats[period].despesa.total.toFixed(2)}</p>
+                        <p className="text-2xl font-extrabold font-mono text-red-500">R$ {financeStats[period].despesa.total.toFixed(2)}</p>
                       </div>
                     </div>
                   </div>
@@ -2792,7 +2781,7 @@ export default function App() {
 
                   <div className={`pt-2 border-t flex justify-between items-center ${isDark ? 'border-white/5' : 'border-slate-300'}`}>
                     <p className={`text-base font-bold uppercase tracking-widest ${isDark ? 'opacity-40' : 'text-black font-extrabold'}`}>Saldo Líquido</p>
-                    <p className={`${getNumberSizeClass('subhero')} font-black font-mono tracking-tight ${(financeStats[period].totalRecebido - financeStats[period].despesa.total) >= 0 ? isDark ? 'text-blue-400' : 'text-blue-700 font-black' : isDark ? 'text-red-400' : 'text-rose-700 font-black'}`}>
+                    <p className={`text-4xl sm:text-5xl font-black font-mono tracking-tight ${(financeStats[period].totalRecebido - financeStats[period].despesa.total) >= 0 ? isDark ? 'text-blue-400' : 'text-blue-700 font-black' : isDark ? 'text-red-400' : 'text-rose-700 font-black'}`}>
                       R$ {(financeStats[period].totalRecebido - financeStats[period].despesa.total).toFixed(2)}
                     </p>
                   </div>
@@ -2959,8 +2948,8 @@ export default function App() {
               <div className="relative z-10 flex flex-col gap-6">
                 <div className="text-center">
                   <p className={`text-sm font-bold uppercase tracking-widest ${subMutedTextColor}`}>Acumulado para Combustível</p>
-                  <h2 className={`${getNumberSizeClass('hero')} font-mono font-black mt-2 tracking-tighter flex items-center justify-center gap-2`} style={getStyle(state.settings.theme.headerColor, true)}>
-                    <span className={`opacity-50 ${getNumberSizeClass('hero-sub')}`}>R$</span>
+                  <h2 className="text-5xl sm:text-7xl font-mono font-black mt-2 tracking-tighter flex items-center justify-center gap-2" style={getStyle(state.settings.theme.headerColor, true)}>
+                    <span className="opacity-50 text-3xl">R$</span>
                     {(state.fuelState?.date === today ? state.fuelState.currentValue : 0).toFixed(2)}
                   </h2>
                 </div>
@@ -3032,7 +3021,7 @@ export default function App() {
                         }`}
                       >
                         <span className={`text-[10px] font-bold ${subMutedTextColor}`}>+R$</span>
-                        <span className="text-xl font-mono font-bold" style={getStyle(state.settings.theme.headerColor, true)}>{val}</span>
+                        <span className={`${getQuickAddNumberSizeClass()} font-mono font-bold leading-none`} style={getStyle(state.settings.theme.headerColor, true)}>{val}</span>
                       </button>
                     ))}
                   </div>
@@ -3474,47 +3463,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Background Images */}
-              <div className="space-y-3">
-                <label className={`text-sm font-mono ${subMutedTextColor} uppercase tracking-widest block`}>Imagens de Fundo</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {PRESET_BG_IMAGES.map(img => (
-                    <button 
-                      key={img.value}
-                      onClick={() => updateTheme('bgImage', img.value)}
-                      className={`aspect-square rounded-lg border-2 overflow-hidden transition-all ${state.settings.theme.bgImage === img.value ? 'border-white scale-105' : 'border-transparent opacity-60'}`}
-                      title={img.name}
-                    >
-                      {img.value ? (
-                        <img src={img.value} alt={img.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-full h-full bg-black/20 flex items-center justify-center text-xs font-bold uppercase">Nenhum</div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Background Opacity */}
-              {state.settings.theme.bgImage && (
-                <div className="space-y-2">
-                  <label className={`text-sm font-mono ${subMutedTextColor} uppercase tracking-widest block`}>Intensidade da Imagem (Opacidade)</label>
-                  <div className="flex items-center gap-4">
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="1" 
-                      step="0.1"
-                      value={state.settings.theme.bgOpacity ?? 0.3}
-                      onChange={(e) => updateTheme('bgOpacity', parseFloat(e.target.value))}
-                      className="flex-1"
-                      style={{ accentColor: getSolidColor(state.settings.theme.headerColor) }}
-                    />
-                    <span className="font-mono font-bold text-sm w-10 text-right">{Math.round((state.settings.theme.bgOpacity ?? 0.3) * 100)}%</span>
-                  </div>
-                </div>
-              )}
-
               {/* Font Size Control */}
               <div className="space-y-2">
                 <label className={`text-sm font-mono ${subMutedTextColor} uppercase tracking-widest flex items-center gap-2`}>
@@ -3554,24 +3502,34 @@ export default function App() {
               <div className="space-y-3">
                 <label className={`text-sm font-mono ${subMutedTextColor} uppercase tracking-widest flex items-center gap-2`}>
                   <TrendingUp size={16} />
-                  Tamanho dos Números
+                  Tamanho dos Números (Painéis & Combustível)
                 </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['normal', 'large', 'xlarge', 'giant'] as const).map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => updateTheme('numberSize', size)}
-                      className={`py-2 px-1 rounded-xl text-xs font-mono border-2 transition-all text-center flex flex-col justify-center items-center ${
-                        (state.settings.theme.numberSize || 'normal') === size
-                          ? 'border-white bg-white/10 scale-[1.02] font-extrabold'
-                          : 'border-transparent bg-white/5 opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <span className="capitalize">
-                        {size === 'normal' ? 'Normal' : size === 'large' ? 'Grande' : size === 'xlarge' ? 'E-Grande' : 'Gigante'}
-                      </span>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {(['normal', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] as const).map((size) => {
+                    const isActive = 
+                      (state.settings.theme.numberSize || 'normal') === size ||
+                      (size === '1' && state.settings.theme.numberSize === 'large') ||
+                      (size === '2' && state.settings.theme.numberSize === 'xlarge') ||
+                      (size === '3' && state.settings.theme.numberSize === 'giant');
+                      
+                    let label = '';
+                    if (size === 'normal') label = 'Normal';
+                    else label = `+${size}`;
+
+                    return (
+                      <button
+                        key={size}
+                        onClick={() => updateTheme('numberSize', size)}
+                        className={`py-2 px-1 rounded-xl text-xs font-mono border-2 transition-all text-center flex flex-col justify-center items-center ${
+                          isActive
+                            ? 'border-white bg-white/15 scale-[1.02] font-extrabold'
+                            : 'border-transparent bg-white/5 opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <span>{label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -3796,7 +3754,7 @@ export default function App() {
                       value={newRideValue}
                       onChange={(e) => setNewRideValue(e.target.value)}
                       placeholder="0,00"
-                      className={`w-full ${isDark ? 'bg-white/5' : 'bg-black/5'} border rounded-xl py-4 pl-12 pr-4 text-3xl font-mono font-bold focus:outline-none transition-colors`}
+                      className={`w-full ${isDark ? 'bg-white/5' : 'bg-black/5'} border rounded-xl py-4 pl-12 pr-4 ${getQuickAddNumberSizeClass()} font-mono font-bold focus:outline-none transition-colors`}
                       style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', color: isDark ? 'white' : 'black' }}
                       onFocus={(e) => e.target.style.borderColor = state.settings.theme.headerColor}
                       onBlur={(e) => e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}
@@ -3937,7 +3895,7 @@ export default function App() {
                       value={newActivityValue}
                       onChange={(e) => setNewActivityValue(e.target.value)}
                       placeholder="0,00"
-                      className={`w-full ${isDark ? 'bg-white/5' : 'bg-black/5'} border rounded-xl py-4 pl-12 pr-4 text-3xl font-mono font-bold focus:outline-none transition-colors`}
+                      className={`w-full ${isDark ? 'bg-white/5' : 'bg-black/5'} border rounded-xl py-4 pl-12 pr-4 ${getQuickAddNumberSizeClass()} font-mono font-bold focus:outline-none transition-colors`}
                       style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', color: isDark ? 'white' : 'black' }}
                       onFocus={(e) => e.target.style.borderColor = state.settings.theme.headerColor}
                       onBlur={(e) => e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}

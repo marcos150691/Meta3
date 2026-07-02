@@ -95,7 +95,7 @@ export interface AppState {
       fontSize?: number;
       fontFamily?: string;
       fontColor?: string;
-      numberSize?: 'normal' | 'large' | 'xlarge' | 'giant';
+      numberSize?: 'normal' | 'large' | 'xlarge' | 'giant' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10';
     };
   };
   history: AppStateSnapshot[];
