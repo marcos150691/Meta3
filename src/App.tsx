@@ -96,7 +96,7 @@ const INITIAL_STATE: AppState = {
       valueBarColor: '#FFD700', // Neon Yellow
       cardBgColor: '',
       backgroundColor: 'dark',
-      fontSize: 16,
+      fontSize: 20,
       fontFamily: '"Inter", sans-serif'
     }
   },
@@ -208,8 +208,8 @@ export default function App() {
       if (!parsed.settings.theme.backgroundColor) {
         parsed.settings.theme.backgroundColor = 'dark';
       }
-      if (!parsed.settings.theme.fontSize) {
-        parsed.settings.theme.fontSize = 16;
+      if (!parsed.settings.theme.fontSize || parsed.settings.theme.fontSize === 16) {
+        parsed.settings.theme.fontSize = 20; // Defaulting to 20 for larger text
       }
       if (!parsed.settings.theme.fontFamily) {
         parsed.settings.theme.fontFamily = '"Inter", sans-serif';
@@ -667,6 +667,12 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  // Apply font size to document root so Tailwind rem classes scale properly
+  useEffect(() => {
+    const size = state.settings.theme.fontSize ?? 20;
+    document.documentElement.style.fontSize = `${size}px`;
+  }, [state.settings.theme.fontSize]);
+
   const getCurrentShift = (): 'manhã' | 'tarde' | 'noite' => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) return 'manhã';
@@ -737,7 +743,7 @@ export default function App() {
       ? { countGoal: currentGoal.countGoal, valueGoal: currentGoal.valueGoal }
       : (currentGoal.shifts || INITIAL_STATE.settings.defaultShifts!)[currentShift as 'manhã' | 'tarde' | 'noite'];
 
-    return { count, value, shifts, currentShift, currentShiftStats, currentShiftGoal, isDayView, journeyTime };
+    return { count, value, shifts, currentShift, currentShiftStats, currentShiftGoal, isDayView, journeyTime, totalDayValue };
   }, [todayRides, state.activities, state.dailyJourneys, state.workTimer, elapsedTime, currentGoal, dashboardShift, today, registrationShift, totalJourneyTime, state.settings.enableShiftTracking]);
 
   // Hourly performance tracking effect
@@ -1000,7 +1006,8 @@ export default function App() {
     const snapshot: AppStateSnapshot = {
       rides: prevState.rides,
       activities: prevState.activities,
-      goals: prevState.goals
+      goals: prevState.goals,
+      fuelState: prevState.fuelState
     };
     return [snapshot, ...prevState.history].slice(0, 10); // Keep last 10 actions
   };
@@ -1235,6 +1242,7 @@ export default function App() {
       rides: lastSnapshot.rides,
       activities: lastSnapshot.activities || [],
       goals: lastSnapshot.goals,
+      fuelState: lastSnapshot.fuelState,
       history: remainingHistory
     }));
   };
@@ -1311,6 +1319,7 @@ export default function App() {
       
       return {
         ...prev,
+        history: saveHistory(prev),
         fuelState: {
           ...fuelState,
           currentValue: newValue,
@@ -1333,6 +1342,7 @@ export default function App() {
   const resetFuelTracker = () => {
     setState(prev => ({
       ...prev,
+      history: saveHistory(prev),
       fuelState: {
         ...(prev.fuelState || { goal: 50, history: [] }),
         currentValue: 0,
@@ -1354,6 +1364,7 @@ export default function App() {
 
       return {
         ...prev,
+        history: saveHistory(prev),
         fuelState: {
           ...fuelState,
           currentValue: 0,
@@ -1434,7 +1445,7 @@ export default function App() {
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundAttachment: 'fixed' as const,
-    fontSize: state.settings.theme.fontSize ? `${state.settings.theme.fontSize}px` : '16px',
+    fontSize: state.settings.theme.fontSize ? `${state.settings.theme.fontSize}px` : '20px',
     fontFamily: state.settings.theme.fontFamily || '"Inter", sans-serif',
     ...customCardVariables
   };
@@ -2886,7 +2897,7 @@ export default function App() {
                 <Fuel size={200} />
               </div>
               
-              <div className="relative z-10 space-y-8">
+              <div className="relative z-10 flex flex-col gap-6">
                 <div className="text-center">
                   <p className={`text-sm font-bold uppercase tracking-widest ${subMutedTextColor}`}>Acumulado para Combustível</p>
                   <h2 className="text-5xl font-mono font-extrabold mt-2 tracking-tighter flex items-center justify-center gap-2" style={getStyle(state.settings.theme.headerColor, true)}>
@@ -2902,8 +2913,11 @@ export default function App() {
                       <span className="font-mono text-sm opacity-40">R$</span>
                       <input 
                         type="number"
-                        value={state.fuelState?.goal || 50}
-                        onChange={(e) => updateFuelGoal(parseInt(e.target.value) || 0)}
+                        value={state.fuelState?.goal === undefined ? 50 : (state.fuelState.goal || '')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          updateFuelGoal(val === '' ? 0 : parseInt(val) || 0);
+                        }}
                         className={`w-20 p-1 text-center font-mono font-bold text-lg rounded-lg border ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-black/5 border-black/10 text-black'} focus:outline-none focus:border-white/30`}
                       />
                     </div>
@@ -2927,8 +2941,23 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-2">
-                  <p className={`text-xs font-bold uppercase tracking-widest text-center ${subMutedTextColor}`}>Adicionar Valor</p>
+                <div className="space-y-3 !-mt-2">
+                  <div className="flex justify-between items-center relative">
+                    <div className="w-20"></div>
+                    <p className={`text-xs font-bold uppercase tracking-widest text-center ${subMutedTextColor}`}>Adicionar Valor</p>
+                    <div className="w-20 flex justify-end">
+                      {state.history.length > 0 && (
+                        <button 
+                          onClick={undo}
+                          className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-tighter ${subMutedTextColor} ${isDark ? 'hover:text-white' : 'hover:text-slate-900'} transition-colors`}
+                          title="Desfazer última ação"
+                        >
+                          <RotateCcw size={12} />
+                          Desfazer
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                     {[4, 5, 6, 7, 8, 9, 10].map(val => (
                       <button
@@ -2964,6 +2993,51 @@ export default function App() {
                     </button>
                   </motion.div>
                 )}
+
+                {/* Resumo de Metas do Dia */}
+                <div className={`mt-8 p-5 rounded-[24px] border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-300'}`}>
+                  {(() => {
+                    const missingDay = Math.max(0, currentGoal.valueGoal - todayStats.totalDayValue);
+                    const formattedDate = new Date(today + 'T12:00:00').toLocaleDateString('pt-BR');
+                    
+                    return (
+                      <div className="space-y-4">
+                        {missingDay > 0 ? (
+                          <p className={`text-sm font-medium leading-relaxed ${isDark ? 'text-white/80' : 'text-slate-700'}`}>
+                            No dia <span className="font-bold">{formattedDate}</span> ficou faltando <span className="font-bold font-mono text-red-500 dark:text-red-400">R$ {missingDay.toFixed(2)}</span> para você bater a meta total do dia.
+                          </p>
+                        ) : (
+                          <p className="text-sm font-medium leading-relaxed text-emerald-600 dark:text-emerald-400">
+                            No dia <span className="font-bold">{formattedDate}</span> você bateu a meta total do dia! 🏆
+                          </p>
+                        )}
+                        
+                        {state.settings.enableShiftTracking && (
+                          <div className={`pt-3 border-t border-dashed ${isDark ? 'border-white/10' : 'border-slate-300'} space-y-2`}>
+                            <p className={`text-[10px] font-bold uppercase tracking-widest ${subMutedTextColor}`}>Detalhes por Turno</p>
+                            {[
+                              { name: 'Manhã', shift: 'manhã' },
+                              { name: 'Tarde', shift: 'tarde' },
+                              { name: 'Noite', shift: 'noite' },
+                            ].map(s => {
+                              const goal = currentGoal.shifts?.[s.shift as 'manhã'|'tarde'|'noite']?.valueGoal || 0;
+                              const value = todayStats.shifts[s.shift as 'manhã'|'tarde'|'noite']?.value || 0;
+                              const missing = Math.max(0, goal - value);
+                              return (
+                                <div key={s.shift} className="flex justify-between items-center text-xs">
+                                  <span className="opacity-80 font-medium">Turno {s.name}</span>
+                                  <span className={`font-mono font-bold ${missing > 0 ? 'text-red-500 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                    {missing > 0 ? `Faltou R$ ${missing.toFixed(2)}` : 'Meta Batida ✓'}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
 
                 {state.fuelState?.history && state.fuelState.history.length > 0 && (
                   <div className="mt-8 space-y-3 pt-6 border-t border-dashed border-slate-300 dark:border-white/10">
@@ -3379,16 +3453,16 @@ export default function App() {
                 </label>
                 <div className="flex items-center gap-4">
                   <button 
-                    onClick={() => updateTheme('fontSize', Math.max(12, (state.settings.theme.fontSize ?? 16) - 1))}
+                    onClick={() => updateTheme('fontSize', Math.max(12, (state.settings.theme.fontSize ?? 20) - 1))}
                     className={`p-2 rounded-lg ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10'} transition-colors`}
                   >
                     <span className="text-lg font-bold">-</span>
                   </button>
                   <div className="flex-1 text-center">
-                    <span className="font-mono font-bold text-lg">{state.settings.theme.fontSize ?? 16}px</span>
+                    <span className="font-mono font-bold text-lg">{state.settings.theme.fontSize ?? 20}px</span>
                   </div>
                   <button 
-                    onClick={() => updateTheme('fontSize', Math.min(24, (state.settings.theme.fontSize ?? 16) + 1))}
+                    onClick={() => updateTheme('fontSize', Math.min(24, (state.settings.theme.fontSize ?? 20) + 1))}
                     className={`p-2 rounded-lg ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10'} transition-colors`}
                   >
                     <span className="text-lg font-bold">+</span>
@@ -3399,7 +3473,7 @@ export default function App() {
                   min="12" 
                   max="24" 
                   step="1"
-                  value={state.settings.theme.fontSize ?? 16}
+                  value={state.settings.theme.fontSize ?? 20}
                   onChange={(e) => updateTheme('fontSize', parseInt(e.target.value))}
                   className="w-full"
                   style={{ accentColor: getSolidColor(state.settings.theme.headerColor) }}

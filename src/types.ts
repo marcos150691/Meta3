@@ -113,4 +113,10 @@ export interface AppStateSnapshot {
   rides: Ride[];
   activities: Activity[];
   goals: DailyGoal[];
+  fuelState?: {
+    goal: number;
+    currentValue: number;
+    date: string;
+    history?: { timestamp: number; value: number; goal: number }[];
+  };
 }
