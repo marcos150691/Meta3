@@ -106,6 +106,7 @@ export interface AppState {
     currentValue: number;
     date: string;
     history?: { timestamp: number; value: number; goal: number }[];
+    dismissedMissingGoalDate?: string;
   };
 }
 
@@ -118,5 +119,6 @@ export interface AppStateSnapshot {
     currentValue: number;
     date: string;
     history?: { timestamp: number; value: number; goal: number }[];
+    dismissedMissingGoalDate?: string;
   };
 }

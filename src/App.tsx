@@ -23,7 +23,8 @@ import {
   Clock,
   Square,
   Zap,
-  Fuel
+  Fuel,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
@@ -669,8 +670,23 @@ export default function App() {
 
   // Apply font size to document root so Tailwind rem classes scale properly
   useEffect(() => {
-    const size = state.settings.theme.fontSize ?? 20;
-    document.documentElement.style.fontSize = `${size}px`;
+    const applyFontSize = () => {
+      let size = state.settings.theme.fontSize ?? 20;
+      
+      // Make root font size responsive on small screens to prevent layout breakage
+      const w = window.innerWidth;
+      if (w < 380 && size > 16) {
+        size = Math.min(size, 16); // Cap on very small phones
+      } else if (w < 450 && size > 18) {
+        size = Math.min(size, 18); // Cap on average phones
+      }
+
+      document.documentElement.style.fontSize = `${size}px`;
+    };
+
+    applyFontSize();
+    window.addEventListener('resize', applyFontSize);
+    return () => window.removeEventListener('resize', applyFontSize);
   }, [state.settings.theme.fontSize]);
 
   const getCurrentShift = (): 'manhã' | 'tarde' | 'noite' => {
@@ -1396,6 +1412,16 @@ export default function App() {
     });
   };
 
+  const dismissMissingGoalBanner = () => {
+    setState(prev => ({
+      ...prev,
+      fuelState: {
+        ...(prev.fuelState || { goal: 50, currentValue: 0, date: today, history: [] }),
+        dismissedMissingGoalDate: today
+      }
+    }));
+  };
+
   const motionProps = (initial: any, animate: any, exit?: any) => {
     if (!state.settings.enableAnimation) return {};
     return { initial, animate, exit };
@@ -1425,8 +1451,8 @@ export default function App() {
     : isDark 
       ? 'glass-card glass-card-dark' 
       : bgColor.toUpperCase() === '#FFFFFF' 
-        ? 'bg-slate-50/95 border-2 border-slate-200/90 shadow-md shadow-slate-200/30 p-5 rounded-2xl'
-        : 'bg-white border-2 border-slate-200/90 shadow-md shadow-slate-200/20 p-5 rounded-2xl';
+        ? 'bg-slate-50/95 border-2 border-slate-200/90 shadow-md shadow-slate-200/30 p-4 sm:p-5 rounded-2xl'
+        : 'bg-white border-2 border-slate-200/90 shadow-md shadow-slate-200/20 p-4 sm:p-5 rounded-2xl';
 
   const customCardVariables = state.settings.theme.cardBgColor
     ? {
@@ -1790,7 +1816,7 @@ export default function App() {
             {/* Progress Cards */}
             <div className="grid grid-cols-1 gap-4">
               {/* Count Goal */}
-              <div className={`${cardClass} p-6 space-y-4`}>
+              <div className={`${cardClass} p-4 sm:p-6 space-y-4`}>
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -1807,7 +1833,7 @@ export default function App() {
                         </button>
                       )}
                     </div>
-                    <h2 className="text-4xl sm:text-6xl font-bold font-mono">
+                    <h2 className="text-3xl sm:text-5xl font-bold font-mono">
                       {targetCount}
                       <span className={`${subMutedTextColor} text-xl sm:text-2xl`}>
                         /{targetCountGoal}
@@ -1920,7 +1946,7 @@ export default function App() {
               </div>
 
               {/* Value Goal */}
-              <div className={`${cardClass} p-6 space-y-4`}>
+              <div className={`${cardClass} p-4 sm:p-6 space-y-4`}>
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -1943,7 +1969,7 @@ export default function App() {
                           key={targetValue}
                           initial={{ scale: 0.95 }}
                           animate={{ scale: 1 }}
-                          className="text-4xl sm:text-6xl font-bold font-mono"
+                          className="text-3xl sm:text-5xl font-bold font-mono"
                         >
                           R$ {targetValue.toFixed(2)}
                           <span className={`${subMutedTextColor} text-xl sm:text-2xl`}>
@@ -1951,7 +1977,7 @@ export default function App() {
                           </span>
                         </motion.h2>
                       ) : (
-                        <h2 className="text-4xl sm:text-6xl font-bold font-mono">
+                        <h2 className="text-3xl sm:text-5xl font-bold font-mono">
                           R$ {targetValue.toFixed(2)}
                           <span className={`${subMutedTextColor} text-xl sm:text-2xl`}>
                             /{targetValueGoal}
@@ -2134,7 +2160,7 @@ export default function App() {
             </div>
 
             {/* Journey Card */}
-            <div className={`${cardClass} p-6 border-l-4 border-green-500`}>
+            <div className={`${cardClass} p-4 sm:p-6 border-l-4 border-green-500`}>
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -2160,7 +2186,7 @@ export default function App() {
                       </button>
                     )}
                   </div>
-                  <h2 className="text-4xl sm:text-6xl font-bold font-mono">
+                  <h2 className="text-3xl sm:text-5xl font-bold font-mono">
                     {formatElapsedTime(todayStats.journeyTime)}
                   </h2>
                   <p className={`${subMutedTextColor} text-[10px] font-mono mt-1 uppercase tracking-widest`}>
@@ -2545,7 +2571,7 @@ export default function App() {
 
             {/* Monthly Goal Card */}
             {state.settings.enableMonthlyGoal && (
-              <div className={`${cardClass} p-6 space-y-8 relative overflow-hidden`}>
+              <div className={`${cardClass} p-4 sm:p-6 space-y-8 relative overflow-hidden`}>
                 <div className="absolute top-0 right-0 p-4 opacity-10">
                   <Target size={80} />
                 </div>
@@ -2702,7 +2728,7 @@ export default function App() {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 gap-4">
               {(['day', 'week', 'month'] as const).map((period) => (
-                <div key={period} className={`${cardClass} p-6 space-y-4`}>
+                <div key={period} className={`${cardClass} p-4 sm:p-6 space-y-4`}>
                   <div className="flex justify-between items-center">
                     <h4 className={`text-base font-bold uppercase tracking-widest ${isDark ? 'opacity-60' : 'text-black font-extrabold'}`}>
                       {period === 'day' ? 'Hoje' : period === 'week' ? 'Esta Semana' : 'Este Mês'}
@@ -2756,7 +2782,7 @@ export default function App() {
                       key={activity.id}
                       layout={state.settings.enableAnimation}
                       {...motionProps({ opacity: 0, x: -20 }, { opacity: 1, x: 0 })}
-                      className={`${cardClass} p-5 flex justify-between items-center`}
+                      className={`${cardClass} p-4 sm:p-5 flex justify-between items-center`}
                     >
                       <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activity.type === 'recebimento' ? isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-100 text-green-800 border border-green-200' : isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-100 text-red-800 border border-red-200'}`}>
@@ -2892,7 +2918,7 @@ export default function App() {
               </button>
             </div>
             
-            <div className={`${cardClass} p-6 relative overflow-hidden group`}>
+            <div className={`${cardClass} p-4 sm:p-6 relative overflow-hidden group`}>
               <div className="absolute -right-4 -bottom-4 opacity-5 pointer-events-none">
                 <Fuel size={200} />
               </div>
@@ -2900,14 +2926,14 @@ export default function App() {
               <div className="relative z-10 flex flex-col gap-6">
                 <div className="text-center">
                   <p className={`text-sm font-bold uppercase tracking-widest ${subMutedTextColor}`}>Acumulado para Combustível</p>
-                  <h2 className="text-5xl font-mono font-extrabold mt-2 tracking-tighter flex items-center justify-center gap-2" style={getStyle(state.settings.theme.headerColor, true)}>
+                  <h2 className="text-4xl sm:text-5xl font-mono font-extrabold mt-2 tracking-tighter flex items-center justify-center gap-2" style={getStyle(state.settings.theme.headerColor, true)}>
                     <span className="opacity-50 text-2xl">R$</span>
                     {(state.fuelState?.date === today ? state.fuelState.currentValue : 0).toFixed(2)}
                   </h2>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2 sm:gap-0">
                     <label className={`text-sm font-bold uppercase tracking-widest ${subMutedTextColor}`}>Meta (Tanque Cheio)</label>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm opacity-40">R$</span>
@@ -2966,7 +2992,7 @@ export default function App() {
                           addFuelValue(val);
                           if (state.settings.enableSound) playBeep();
                         }}
-                        className={`py-3 rounded-xl border flex flex-col items-center justify-center transition-all active:scale-95 ${
+                        className={`py-3 px-1 rounded-xl border flex flex-col items-center justify-center transition-all active:scale-95 ${
                           isDark 
                             ? 'bg-white/5 border-white/10 hover:bg-white/10' 
                             : 'bg-white border-slate-300 shadow-sm hover:bg-slate-50'
@@ -2995,22 +3021,32 @@ export default function App() {
                 )}
 
                 {/* Resumo de Metas do Dia */}
-                <div className={`mt-8 p-5 rounded-[24px] border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-300'}`}>
-                  {(() => {
-                    const missingDay = Math.max(0, currentGoal.valueGoal - todayStats.totalDayValue);
-                    const formattedDate = new Date(today + 'T12:00:00').toLocaleDateString('pt-BR');
-                    
-                    return (
-                      <div className="space-y-4">
-                        {missingDay > 0 ? (
-                          <p className={`text-sm font-medium leading-relaxed ${isDark ? 'text-white/80' : 'text-slate-700'}`}>
-                            No dia <span className="font-bold">{formattedDate}</span> ficou faltando <span className="font-bold font-mono text-red-500 dark:text-red-400">R$ {missingDay.toFixed(2)}</span> para você bater a meta total do dia.
-                          </p>
-                        ) : (
-                          <p className="text-sm font-medium leading-relaxed text-emerald-600 dark:text-emerald-400">
-                            No dia <span className="font-bold">{formattedDate}</span> você bateu a meta total do dia! 🏆
-                          </p>
-                        )}
+                {(state.fuelState?.dismissedMissingGoalDate !== today || Math.max(0, currentGoal.valueGoal - todayStats.totalDayValue) === 0) && (
+                  <div className={`mt-8 p-4 sm:p-5 rounded-[24px] border relative ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-300'}`}>
+                    {(() => {
+                      const missingDay = Math.max(0, currentGoal.valueGoal - todayStats.totalDayValue);
+                      const formattedDate = new Date(today + 'T12:00:00').toLocaleDateString('pt-BR');
+                      
+                      return (
+                        <div className="space-y-4">
+                          {missingDay > 0 && (
+                            <button
+                              onClick={dismissMissingGoalBanner}
+                              className={`absolute top-4 right-4 p-1.5 rounded-full ${isDark ? 'hover:bg-white/10 text-white/50 hover:text-white' : 'hover:bg-black/5 text-slate-400 hover:text-slate-600'} transition-colors`}
+                              title="Ocultar aviso"
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
+                          {missingDay > 0 ? (
+                            <p className={`text-sm font-medium leading-relaxed pr-8 ${isDark ? 'text-white/80' : 'text-slate-700'}`}>
+                              No dia <span className="font-bold">{formattedDate}</span> ficou faltando <span className="font-bold font-mono text-red-500 dark:text-red-400">R$ {missingDay.toFixed(2)}</span> para você bater a meta total do dia.
+                            </p>
+                          ) : (
+                            <p className="text-sm font-medium leading-relaxed text-emerald-600 dark:text-emerald-400">
+                              No dia <span className="font-bold">{formattedDate}</span> você bateu a meta total do dia! 🏆
+                            </p>
+                          )}
                         
                         {state.settings.enableShiftTracking && (
                           <div className={`pt-3 border-t border-dashed ${isDark ? 'border-white/10' : 'border-slate-300'} space-y-2`}>
@@ -3038,6 +3074,7 @@ export default function App() {
                     );
                   })()}
                 </div>
+                )}
 
                 {state.fuelState?.history && state.fuelState.history.length > 0 && (
                   <div className="mt-8 space-y-3 pt-6 border-t border-dashed border-slate-300 dark:border-white/10">
@@ -3086,7 +3123,7 @@ export default function App() {
             
             <div className={`${cardClass} p-6 space-y-6`}>
               <div className="space-y-4 border-b border-white/5 pb-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3 sm:gap-0">
                   <label className="text-sm font-bold uppercase tracking-widest block font-sans">Meta Mensal (R$)</label>
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-bold text-lg opacity-40">R$</span>
@@ -3112,7 +3149,7 @@ export default function App() {
 
               {/* Goal Target End Date */}
               <div className="space-y-4 border-b border-white/5 pb-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3 sm:gap-0">
                   <div>
                     <label className="text-sm font-bold uppercase tracking-widest">Data Limite da Meta</label>
                     <p className={`${subMutedTextColor} text-[10px] mt-0.5`}>Selecione um prazo customizado para faturamento</p>
@@ -3282,7 +3319,7 @@ export default function App() {
 
             <h3 className={`text-lg font-bold uppercase tracking-widest ${mutedTextColor}`}>Efeitos e Sons</h3>
             
-            <div className={`${cardClass} p-6 space-y-4`}>
+            <div className={`${cardClass} p-4 sm:p-6 space-y-4`}>
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="font-bold uppercase tracking-widest text-sm">Sons de Feedback</p>
