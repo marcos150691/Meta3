@@ -98,7 +98,8 @@ const INITIAL_STATE: AppState = {
       cardBgColor: '',
       backgroundColor: 'dark',
       fontSize: 20,
-      fontFamily: '"Inter", sans-serif'
+      fontFamily: '"Inter", sans-serif',
+      numberSize: 'normal'
     }
   },
   history: [],
@@ -1509,6 +1510,38 @@ export default function App() {
     return isText ? { color: finalColor } : { backgroundColor: finalColor };
   };
 
+  const getNumberSizeClass = (category: 'hero' | 'hero-sub' | 'subhero' | 'subhero-sub' | 'secondary') => {
+    const size = state.settings.theme.numberSize || 'normal';
+    if (size === 'large') {
+      if (category === 'hero') return 'text-6xl sm:text-8xl';
+      if (category === 'hero-sub') return 'text-3xl sm:text-4xl';
+      if (category === 'subhero') return 'text-4xl sm:text-5xl';
+      if (category === 'subhero-sub') return 'text-2xl sm:text-3xl';
+      if (category === 'secondary') return 'text-2xl';
+    }
+    if (size === 'xlarge') {
+      if (category === 'hero') return 'text-7xl sm:text-9xl';
+      if (category === 'hero-sub') return 'text-4xl sm:text-5xl';
+      if (category === 'subhero') return 'text-5xl sm:text-6xl';
+      if (category === 'subhero-sub') return 'text-3xl sm:text-4xl';
+      if (category === 'secondary') return 'text-3xl';
+    }
+    if (size === 'giant') {
+      if (category === 'hero') return 'text-8xl sm:text-[10rem] md:text-[11rem]';
+      if (category === 'hero-sub') return 'text-5xl sm:text-6xl';
+      if (category === 'subhero') return 'text-6xl sm:text-7xl';
+      if (category === 'subhero-sub') return 'text-4xl sm:text-5xl';
+      if (category === 'secondary') return 'text-4xl';
+    }
+    // 'normal' or default
+    if (category === 'hero') return 'text-5xl sm:text-7xl';
+    if (category === 'hero-sub') return 'text-2xl sm:text-3xl';
+    if (category === 'subhero') return 'text-3xl sm:text-4xl';
+    if (category === 'subhero-sub') return 'text-xl sm:text-2xl';
+    if (category === 'secondary') return 'text-xl';
+    return '';
+  };
+
   const getSolidColor = (color: string) => {
     if (color.startsWith('linear-gradient')) {
       // Extract first color from gradient for things that don't support gradients well (like accentColor)
@@ -1574,7 +1607,7 @@ export default function App() {
                   </div>
                   <div>
                     <p className={`${mutedTextColor} text-[9px] uppercase font-mono tracking-widest`}>Controle de Jornada</p>
-                    <p className="text-2xl font-bold font-mono tracking-tighter">
+                    <p className={`${getNumberSizeClass('subhero')} font-extrabold font-mono tracking-tighter`}>
                       {formatElapsedTime(elapsedTime)}
                     </p>
                   </div>
@@ -1833,9 +1866,9 @@ export default function App() {
                         </button>
                       )}
                     </div>
-                    <h2 className="text-3xl sm:text-5xl font-bold font-mono">
+                    <h2 className={`${getNumberSizeClass('hero')} font-bold font-mono tracking-tight`}>
                       {targetCount}
-                      <span className={`${subMutedTextColor} text-xl sm:text-2xl`}>
+                      <span className={`${subMutedTextColor} ${getNumberSizeClass('hero-sub')}`}>
                         /{targetCountGoal}
                       </span>
                     </h2>
@@ -1969,17 +2002,17 @@ export default function App() {
                           key={targetValue}
                           initial={{ scale: 0.95 }}
                           animate={{ scale: 1 }}
-                          className="text-3xl sm:text-5xl font-bold font-mono"
+                          className={`${getNumberSizeClass('hero')} font-bold font-mono tracking-tight`}
                         >
                           R$ {targetValue.toFixed(2)}
-                          <span className={`${subMutedTextColor} text-xl sm:text-2xl`}>
+                          <span className={`${subMutedTextColor} ${getNumberSizeClass('hero-sub')}`}>
                             /{targetValueGoal}
                           </span>
                         </motion.h2>
                       ) : (
-                        <h2 className="text-3xl sm:text-5xl font-bold font-mono">
+                        <h2 className={`${getNumberSizeClass('hero')} font-bold font-mono tracking-tight`}>
                           R$ {targetValue.toFixed(2)}
-                          <span className={`${subMutedTextColor} text-xl sm:text-2xl`}>
+                          <span className={`${subMutedTextColor} ${getNumberSizeClass('hero-sub')}`}>
                             /{targetValueGoal}
                           </span>
                         </h2>
@@ -2186,7 +2219,7 @@ export default function App() {
                       </button>
                     )}
                   </div>
-                  <h2 className="text-3xl sm:text-5xl font-bold font-mono">
+                  <h2 className={`${getNumberSizeClass('hero')} font-bold font-mono tracking-tight`}>
                     {formatElapsedTime(todayStats.journeyTime)}
                   </h2>
                   <p className={`${subMutedTextColor} text-[10px] font-mono mt-1 uppercase tracking-widest`}>
@@ -2593,7 +2626,7 @@ export default function App() {
                           } ${subMutedTextColor}`}
                         />
                       </div>
-                      <h4 className="text-2xl font-bold font-mono">R$ {monthlyStats.totalValue.toFixed(2)}</h4>
+                      <h4 className={`${getNumberSizeClass('subhero')} font-extrabold font-mono tracking-tight`}>R$ {monthlyStats.totalValue.toFixed(2)}</h4>
                       {state.settings.goalTargetDate && selectedMonth === today.substring(0, 7) && (
                         <div className="text-[11px] font-mono font-bold text-orange-500 uppercase tracking-wider flex items-center gap-1.5 mt-1.5">
                           <Calendar size={12} className="text-orange-500 animate-pulse" />
@@ -2672,11 +2705,11 @@ export default function App() {
                   <div className="flex justify-between items-end">
                     <div>
                       <p className={`${mutedTextColor} text-xs uppercase font-mono tracking-widest mb-1`}>Meta Semanal</p>
-                      <h4 className="text-2xl font-bold font-mono">R$ {financeStats.week.totalRecebido.toFixed(2)}</h4>
+                      <h4 className={`${getNumberSizeClass('subhero')} font-extrabold font-mono tracking-tight`}>R$ {financeStats.week.totalRecebido.toFixed(2)}</h4>
                     </div>
                     <div className="text-right">
                       <p className={`${subMutedTextColor} text-[10px] uppercase font-mono tracking-tighter`}>Faltam</p>
-                      <p className="text-lg font-bold font-mono">R$ {Math.max(0, monthlyStats.weeklyNeeded - financeStats.week.totalRecebido).toFixed(2)}</p>
+                      <p className={`${getNumberSizeClass('secondary')} font-extrabold font-mono`}>R$ {Math.max(0, monthlyStats.weeklyNeeded - financeStats.week.totalRecebido).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -2700,11 +2733,11 @@ export default function App() {
                   <div className="flex justify-between items-end">
                     <div>
                       <p className={`${mutedTextColor} text-xs uppercase font-mono tracking-widest mb-1`}>Meta Diária</p>
-                      <h4 className="text-2xl font-bold font-mono">R$ {financeStats.day.totalRecebido.toFixed(2)}</h4>
+                      <h4 className={`${getNumberSizeClass('subhero')} font-extrabold font-mono tracking-tight`}>R$ {financeStats.day.totalRecebido.toFixed(2)}</h4>
                     </div>
                     <div className="text-right">
                       <p className={`${subMutedTextColor} text-[10px] uppercase font-mono tracking-tighter`}>Faltam</p>
-                      <p className="text-lg font-bold font-mono">R$ {Math.max(0, monthlyStats.dailyNeeded - financeStats.day.totalRecebido).toFixed(2)}</p>
+                      <p className={`${getNumberSizeClass('secondary')} font-extrabold font-mono`}>R$ {Math.max(0, monthlyStats.dailyNeeded - financeStats.day.totalRecebido).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -2736,11 +2769,11 @@ export default function App() {
                     <div className="flex gap-4">
                       <div className="text-right">
                         <p className="text-xs uppercase font-mono tracking-tighter text-green-500">Total Recebido</p>
-                        <p className="text-xl font-bold font-mono text-green-500">R$ {financeStats[period].totalRecebido.toFixed(2)}</p>
+                        <p className={`${getNumberSizeClass('secondary')} font-extrabold font-mono text-green-500`}>R$ {financeStats[period].totalRecebido.toFixed(2)}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs uppercase font-mono tracking-tighter text-red-500">Despesas</p>
-                        <p className="text-xl font-bold font-mono text-red-500">R$ {financeStats[period].despesa.total.toFixed(2)}</p>
+                        <p className={`${getNumberSizeClass('secondary')} font-extrabold font-mono text-red-500`}>R$ {financeStats[period].despesa.total.toFixed(2)}</p>
                       </div>
                     </div>
                   </div>
@@ -2750,8 +2783,8 @@ export default function App() {
                       <div key={platform} className="space-y-1">
                         <p className={`text-sm uppercase font-mono font-bold tracking-tighter ${isDark ? 'opacity-80' : 'text-black font-extrabold'}`}>{platform}</p>
                         <div className="flex flex-col">
-                          <span className={`text-sm font-bold ${isDark ? 'text-green-400/90' : 'text-emerald-700 font-extrabold'}`}>+R$ {(financeStats[period].recebimentoManual[platform] + (platform === 'Outros' ? financeStats[period].faturamento : 0)).toFixed(0)}</span>
-                          <span className={`text-sm font-bold ${isDark ? 'text-red-400/90' : 'text-rose-700 font-extrabold'}`}>-R$ {financeStats[period].despesa[platform].toFixed(0)}</span>
+                          <span className={`text-base font-extrabold ${isDark ? 'text-green-400/90' : 'text-emerald-700 font-extrabold'}`}>+R$ {(financeStats[period].recebimentoManual[platform] + (platform === 'Outros' ? financeStats[period].faturamento : 0)).toFixed(0)}</span>
+                          <span className={`text-base font-extrabold ${isDark ? 'text-red-400/90' : 'text-rose-700 font-extrabold'}`}>-R$ {financeStats[period].despesa[platform].toFixed(0)}</span>
                         </div>
                       </div>
                     ))}
@@ -2759,7 +2792,7 @@ export default function App() {
 
                   <div className={`pt-2 border-t flex justify-between items-center ${isDark ? 'border-white/5' : 'border-slate-300'}`}>
                     <p className={`text-base font-bold uppercase tracking-widest ${isDark ? 'opacity-40' : 'text-black font-extrabold'}`}>Saldo Líquido</p>
-                    <p className={`text-3xl font-black font-mono ${(financeStats[period].totalRecebido - financeStats[period].despesa.total) >= 0 ? isDark ? 'text-blue-400' : 'text-blue-700 font-black' : isDark ? 'text-red-400' : 'text-rose-700 font-black'}`}>
+                    <p className={`${getNumberSizeClass('subhero')} font-black font-mono tracking-tight ${(financeStats[period].totalRecebido - financeStats[period].despesa.total) >= 0 ? isDark ? 'text-blue-400' : 'text-blue-700 font-black' : isDark ? 'text-red-400' : 'text-rose-700 font-black'}`}>
                       R$ {(financeStats[period].totalRecebido - financeStats[period].despesa.total).toFixed(2)}
                     </p>
                   </div>
@@ -2926,8 +2959,8 @@ export default function App() {
               <div className="relative z-10 flex flex-col gap-6">
                 <div className="text-center">
                   <p className={`text-sm font-bold uppercase tracking-widest ${subMutedTextColor}`}>Acumulado para Combustível</p>
-                  <h2 className="text-4xl sm:text-5xl font-mono font-extrabold mt-2 tracking-tighter flex items-center justify-center gap-2" style={getStyle(state.settings.theme.headerColor, true)}>
-                    <span className="opacity-50 text-2xl">R$</span>
+                  <h2 className={`${getNumberSizeClass('hero')} font-mono font-black mt-2 tracking-tighter flex items-center justify-center gap-2`} style={getStyle(state.settings.theme.headerColor, true)}>
+                    <span className={`opacity-50 ${getNumberSizeClass('hero-sub')}`}>R$</span>
                     {(state.fuelState?.date === today ? state.fuelState.currentValue : 0).toFixed(2)}
                   </h2>
                 </div>
@@ -3515,6 +3548,31 @@ export default function App() {
                   className="w-full"
                   style={{ accentColor: getSolidColor(state.settings.theme.headerColor) }}
                 />
+              </div>
+
+              {/* Tamanho dos Números Control */}
+              <div className="space-y-3">
+                <label className={`text-sm font-mono ${subMutedTextColor} uppercase tracking-widest flex items-center gap-2`}>
+                  <TrendingUp size={16} />
+                  Tamanho dos Números
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(['normal', 'large', 'xlarge', 'giant'] as const).map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => updateTheme('numberSize', size)}
+                      className={`py-2 px-1 rounded-xl text-xs font-mono border-2 transition-all text-center flex flex-col justify-center items-center ${
+                        (state.settings.theme.numberSize || 'normal') === size
+                          ? 'border-white bg-white/10 scale-[1.02] font-extrabold'
+                          : 'border-transparent bg-white/5 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <span className="capitalize">
+                        {size === 'normal' ? 'Normal' : size === 'large' ? 'Grande' : size === 'xlarge' ? 'E-Grande' : 'Gigante'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Font Family Selection */}
