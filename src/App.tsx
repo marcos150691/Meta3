@@ -3659,10 +3659,18 @@ export default function App() {
 
       {/* Navigation Bar */}
       <nav className={`fixed bottom-0 left-0 right-0 pb-[max(12px,env(safe-area-inset-bottom,16px))] pt-3 px-3 ${isDark ? 'bg-asphalt/95' : 'bg-white/95'} backdrop-blur-2xl border-t ${isDark ? 'border-white/5' : 'border-black/5'} z-40 shadow-2xl`}>
-        <div className="max-w-md mx-auto flex items-center justify-between gap-1 w-full relative z-10">
+        <div 
+          className="max-w-md mx-auto flex items-center justify-start sm:justify-between gap-6 overflow-x-auto w-full relative z-10 px-4" 
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          <style>{`
+            nav .overflow-x-auto::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
           <button 
             onClick={() => setActiveTab('dashboard')}
-            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[56px] sm:min-w-[48px] ${activeTab === 'dashboard' ? 'scale-110' : subMutedTextColor}`}
+            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[64px] sm:min-w-[48px] ${activeTab === 'dashboard' ? 'scale-110' : subMutedTextColor}`}
             style={activeTab === 'dashboard' ? getStyle(state.settings.theme.headerColor, true) : undefined}
           >
             <TrendingUp size={24} />
@@ -3671,7 +3679,7 @@ export default function App() {
           
           <button 
             onClick={() => setActiveTab('history')}
-            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[56px] sm:min-w-[48px] ${activeTab === 'history' ? 'scale-110' : subMutedTextColor}`}
+            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[64px] sm:min-w-[48px] ${activeTab === 'history' ? 'scale-110' : subMutedTextColor}`}
             style={activeTab === 'history' ? getStyle(state.settings.theme.headerColor, true) : undefined}
           >
             <History size={24} />
@@ -3680,7 +3688,7 @@ export default function App() {
 
           <button 
             onClick={() => setActiveTab('finance')}
-            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[56px] sm:min-w-[48px] ${activeTab === 'finance' ? 'scale-110' : subMutedTextColor}`}
+            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[64px] sm:min-w-[48px] ${activeTab === 'finance' ? 'scale-110' : subMutedTextColor}`}
             style={activeTab === 'finance' ? getStyle(state.settings.theme.headerColor, true) : undefined}
           >
             <Wallet size={24} />
@@ -3689,7 +3697,7 @@ export default function App() {
 
           <button 
             onClick={() => setActiveTab('productivity')}
-            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[56px] sm:min-w-[48px] ${activeTab === 'productivity' ? 'scale-110' : subMutedTextColor}`}
+            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[64px] sm:min-w-[48px] ${activeTab === 'productivity' ? 'scale-110' : subMutedTextColor}`}
             style={activeTab === 'productivity' ? getStyle(state.settings.theme.headerColor, true) : undefined}
           >
             <Zap size={24} />
@@ -3698,7 +3706,7 @@ export default function App() {
 
           <button 
             onClick={() => setActiveTab('fuel')}
-            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[56px] sm:min-w-[48px] ${activeTab === 'fuel' ? 'scale-110' : subMutedTextColor}`}
+            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[64px] sm:min-w-[48px] ${activeTab === 'fuel' ? 'scale-110' : subMutedTextColor}`}
             style={activeTab === 'fuel' ? getStyle(state.settings.theme.headerColor, true) : undefined}
           >
             <Fuel size={24} />
@@ -3707,7 +3715,7 @@ export default function App() {
 
           <button 
             onClick={() => setActiveTab('settings')}
-            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[56px] sm:min-w-[48px] ${activeTab === 'settings' ? 'scale-110' : subMutedTextColor}`}
+            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[64px] sm:min-w-[48px] ${activeTab === 'settings' ? 'scale-110' : subMutedTextColor}`}
             style={activeTab === 'settings' ? getStyle(state.settings.theme.headerColor, true) : undefined}
           >
             <Settings size={24} />
