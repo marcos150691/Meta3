@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import MotoHeaderImg from './assets/images/moto_header_1783271006845.jpg';
 import { 
   Bike, 
   TrendingUp, 
@@ -232,6 +233,7 @@ export default function App() {
             parsed.dailyJourneys[date] = { 'dia inteiro': parsed.dailyJourneys[date] };
           }
         });
+
       }
       if (parsed.hourlyPerformance === undefined) {
         parsed.hourlyPerformance = [];
@@ -279,6 +281,7 @@ export default function App() {
           }
           return goal;
         });
+
       }
       // Migration for shift
       if (parsed.rides) {
@@ -286,6 +289,7 @@ export default function App() {
           ...ride,
           shift: ride.shift || 'manhã'
         }));
+
       }
       // Migration for workTimer
       if (!parsed.workTimer) {
@@ -323,7 +327,7 @@ export default function App() {
   }
 });
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'finance' | 'productivity' | 'settings' | 'fuel'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'finance' | 'productivity' | 'settings' | 'fuel' | 'missing_goals'>('dashboard');
   const [dashboardShift, setDashboardShift] = useState<'manhã' | 'tarde' | 'noite' | 'dia'>(() => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) return 'manhã';
@@ -374,6 +378,7 @@ export default function App() {
 
   const [quickValue, setQuickValue] = useState('');
   const [lastAddedValue, setLastAddedValue] = useState<number | null>(null);
+  const [customFuelInput, setCustomFuelInput] = useState<string>('');
   const [showFloatingValue, setShowFloatingValue] = useState(false);
 
   const coinPaths = useMemo(() => {
@@ -1254,6 +1259,16 @@ export default function App() {
     if (state.history.length === 0) return;
 
     const [lastSnapshot, ...remainingHistory] = state.history;
+    
+    // Determine the last added value from the snapshot's rides
+    if (lastSnapshot.rides && lastSnapshot.rides.length > 0) {
+      // Find the most recently added ride in the snapshot
+      const latestRide = [...lastSnapshot.rides].sort((a, b) => b.timestamp - a.timestamp)[0];
+      setLastAddedValue(latestRide.value);
+    } else {
+      setLastAddedValue(null);
+    }
+
     setState(prev => ({
       ...prev,
       rides: lastSnapshot.rides,
@@ -1553,15 +1568,6 @@ export default function App() {
       <Toaster position="top-center" theme={isDark ? 'dark' : 'light'} richColors />
       {/* Header */}
       <header className="p-4 sm:p-6 pt-12 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 opacity-20 -mr-16 -mt-16 pointer-events-none">
-          <img 
-            src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&q=80&w=400" 
-            alt="Motorcycle" 
-            className="w-full h-full object-cover rounded-full"
-            referrerPolicy="no-referrer"
-          />
-        </div>
-        
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <div 
@@ -1586,6 +1592,17 @@ export default function App() {
             {...motionProps({ opacity: 0, y: 20 }, { opacity: 1, y: 0 })}
             className="space-y-6"
           >
+            {/* Hero Image */}
+            <div className="w-full h-48 sm:h-64 rounded-3xl overflow-hidden shadow-2xl border border-white/5 relative group">
+              <img 
+                src={MotoHeaderImg} 
+                alt="Motorcycle Graphic" 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+            </div>
+
             {/* Work Timer Section */}
             <div className={`${cardClass} p-3 sm:p-4 flex flex-col gap-2 relative overflow-hidden ring-1 ring-white/5`}>
               <div className="flex justify-between items-center relative z-10">
@@ -2136,13 +2153,22 @@ export default function App() {
                           <span className="text-green-500 font-bold">Meta Batida! (+R$ {(targetValue - targetValueGoal).toFixed(2)})</span>
                         )}
                         <span className={`${isDark ? 'text-white/20' : 'text-slate-300'} hidden sm:inline`}>•</span>
-                        <div className="text-xs sm:text-sm font-sans">
+                        <div className="text-xs sm:text-sm font-sans flex items-center gap-2">
                           {targetCount < targetCountGoal ? (
                             <span className={isDark ? 'text-white/70' : 'text-slate-700 font-bold'}>
                               (Faltam <span className={`${isDark ? 'text-white' : 'text-slate-900'} font-bold`}>{targetCountGoal - targetCount}</span> corridas)
                             </span>
                           ) : (
                             <span className="text-green-500/80 font-bold">(Meta de corridas batida!)</span>
+                          )}
+                          
+                          {lastAddedValue !== null && (
+                            <>
+                              <span className={`${isDark ? 'text-white/20' : 'text-slate-300'} hidden sm:inline`}>•</span>
+                              <span className={`text-[10px] font-bold uppercase tracking-widest ${subMutedTextColor}`}>
+                                Último: <span className="font-mono text-emerald-500 text-sm">R$ {lastAddedValue}</span>
+                              </span>
+                            </>
                           )}
                         </div>
                       </div>
@@ -2200,6 +2226,7 @@ export default function App() {
                               deleteJourneyTime(today, shift);
                             });
                           }
+                    
                         }}
                         className={`ml-2 p-1.5 rounded-xl ${subMutedTextColor} hover:text-red-500 hover:bg-red-500/10 active:scale-95 transition-all flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
                         title="Zerar registros de hoje"
@@ -2947,11 +2974,14 @@ export default function App() {
               
               <div className="relative z-10 flex flex-col gap-6">
                 <div className="text-center">
-                  <p className={`text-sm font-bold uppercase tracking-widest ${subMutedTextColor}`}>Acumulado para Combustível</p>
+                  <p className={`text-sm font-bold uppercase tracking-widest ${subMutedTextColor}`}>Falta para a Meta</p>
                   <h2 className="text-5xl sm:text-7xl font-mono font-black mt-2 tracking-tighter flex items-center justify-center gap-2" style={getStyle(state.settings.theme.headerColor, true)}>
                     <span className="opacity-50 text-3xl">R$</span>
-                    {(state.fuelState?.date === today ? state.fuelState.currentValue : 0).toFixed(2)}
+                    {Math.max(0, (state.fuelState?.goal || 50) - (state.fuelState?.date === today ? state.fuelState.currentValue : 0)).toFixed(2)}
                   </h2>
+                  <p className={`text-xs font-bold uppercase mt-2 opacity-60 ${subMutedTextColor}`}>
+                    Acumulado: R$ {(state.fuelState?.date === today ? state.fuelState.currentValue : 0).toFixed(2)}
+                  </p>
                 </div>
 
                 <div className="space-y-4">
@@ -3006,7 +3036,30 @@ export default function App() {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const val = parseFloat(customFuelInput.replace(',', '.'));
+                        if (val > 0) {
+                          addFuelValue(val);
+                          setCustomFuelInput('');
+                          if (state.settings.enableSound) playBeep();
+                        }
+                      }}
+                      className={`py-3 px-1 rounded-xl border flex flex-col items-center justify-center ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-300 shadow-sm'}`}
+                    >
+                      <span className={`text-[10px] font-bold ${subMutedTextColor}`}>+R$</span>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        value={customFuelInput}
+                        onChange={(e) => setCustomFuelInput(e.target.value)}
+                        placeholder="0.00"
+                        className={`w-full text-center ${getQuickAddNumberSizeClass()} font-mono font-bold leading-none bg-transparent outline-none`} 
+                        style={getStyle(state.settings.theme.headerColor, true)} 
+                      />
+                    </form>
                     {[4, 5, 6, 7, 8, 9, 10].map(val => (
                       <button
                         key={val}
@@ -3040,62 +3093,6 @@ export default function App() {
                       Concluir Abastecimento
                     </button>
                   </motion.div>
-                )}
-
-                {/* Resumo de Metas do Dia */}
-                {(state.fuelState?.dismissedMissingGoalDate !== today || Math.max(0, currentGoal.valueGoal - todayStats.totalDayValue) === 0) && (
-                  <div className={`mt-8 p-4 sm:p-5 rounded-[24px] border relative ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-300'}`}>
-                    {(() => {
-                      const missingDay = Math.max(0, currentGoal.valueGoal - todayStats.totalDayValue);
-                      const formattedDate = new Date(today + 'T12:00:00').toLocaleDateString('pt-BR');
-                      
-                      return (
-                        <div className="space-y-4">
-                          {missingDay > 0 && (
-                            <button
-                              onClick={dismissMissingGoalBanner}
-                              className={`absolute top-4 right-4 p-1.5 rounded-full ${isDark ? 'hover:bg-white/10 text-white/50 hover:text-white' : 'hover:bg-black/5 text-slate-400 hover:text-slate-600'} transition-colors`}
-                              title="Ocultar aviso"
-                            >
-                              <X size={16} />
-                            </button>
-                          )}
-                          {missingDay > 0 ? (
-                            <p className={`text-sm font-medium leading-relaxed pr-8 ${isDark ? 'text-white/80' : 'text-slate-700'}`}>
-                              No dia <span className="font-bold">{formattedDate}</span> ficou faltando <span className="font-bold font-mono text-red-500 dark:text-red-400">R$ {missingDay.toFixed(2)}</span> para você bater a meta total do dia.
-                            </p>
-                          ) : (
-                            <p className="text-sm font-medium leading-relaxed text-emerald-600 dark:text-emerald-400">
-                              No dia <span className="font-bold">{formattedDate}</span> você bateu a meta total do dia! 🏆
-                            </p>
-                          )}
-                        
-                        {state.settings.enableShiftTracking && (
-                          <div className={`pt-3 border-t border-dashed ${isDark ? 'border-white/10' : 'border-slate-300'} space-y-2`}>
-                            <p className={`text-[10px] font-bold uppercase tracking-widest ${subMutedTextColor}`}>Detalhes por Turno</p>
-                            {[
-                              { name: 'Manhã', shift: 'manhã' },
-                              { name: 'Tarde', shift: 'tarde' },
-                              { name: 'Noite', shift: 'noite' },
-                            ].map(s => {
-                              const goal = currentGoal.shifts?.[s.shift as 'manhã'|'tarde'|'noite']?.valueGoal || 0;
-                              const value = todayStats.shifts[s.shift as 'manhã'|'tarde'|'noite']?.value || 0;
-                              const missing = Math.max(0, goal - value);
-                              return (
-                                <div key={s.shift} className="flex justify-between items-center text-xs">
-                                  <span className="opacity-80 font-medium">Turno {s.name}</span>
-                                  <span className={`font-mono font-bold ${missing > 0 ? 'text-red-500 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                    {missing > 0 ? `Faltou R$ ${missing.toFixed(2)}` : 'Meta Batida ✓'}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
                 )}
 
                 {state.fuelState?.history && state.fuelState.history.length > 0 && (
@@ -3132,6 +3129,140 @@ export default function App() {
                   </div>
                 )}
               </div>
+            </div>
+          </motion.div>
+        )}
+
+
+        {activeTab === 'missing_goals' && (
+          <motion.div 
+            {...motionProps({ opacity: 0, y: 20 }, { opacity: 1, y: 0 })}
+            className="space-y-6"
+          >
+            <div className="flex justify-between items-center mb-2">
+              <h3 className={`text-lg font-bold uppercase tracking-widest ${mutedTextColor}`}>Histórico de Atingimento</h3>
+            </div>
+            <div className="space-y-6">
+              {(() => {
+                const datesSet = new Set<string>();
+                state.rides.forEach(r => datesSet.add(r.date));
+                state.activities.forEach(a => { if (a.type === 'recebimento') datesSet.add(a.date); });
+                
+                let dates = Array.from(datesSet);
+                // Filter out deleted dates
+                if (state.deletedMissingGoalsDates) {
+                  dates = dates.filter(d => !state.deletedMissingGoalsDates!.includes(d));
+                }
+                
+                dates.sort((a, b) => b.localeCompare(a));
+                
+                if (dates.length === 0) {
+                  return (
+                    <div className={`p-8 text-center rounded-[24px] border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-300'}`}>
+                      <Target className={`mx-auto mb-4 opacity-20 ${subMutedTextColor}`} size={48} />
+                      <p className={`text-sm font-bold uppercase tracking-widest ${mutedTextColor}`}>Nenhum registro de metas.</p>
+                    </div>
+                  );
+                }
+                
+                // Group by month
+                const byMonth: Record<string, string[]> = {};
+                dates.forEach(d => {
+                  const month = d.substring(0, 7); // YYYY-MM
+                  if (!byMonth[month]) byMonth[month] = [];
+                  byMonth[month].push(d);
+                });
+        
+
+                return Object.entries(byMonth).map(([month, monthDates]) => {
+                  const [year, m] = month.split('-');
+                  const monthName = new Date(parseInt(year), parseInt(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                  
+                  return (
+                    <div key={month} className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className={`text-sm font-bold uppercase tracking-widest ${subMutedTextColor} border-b ${isDark ? 'border-white/10' : 'border-slate-300'} w-full pb-2`}>
+                          {monthName}
+                        </h4>
+                      </div>
+                      
+                      {monthDates.map(date => {
+                        const dateRides = state.rides.filter(r => r.date === date);
+                        const dateActivities = state.activities.filter(a => a.date === date && a.type === 'recebimento');
+                        
+                        const shifts = { manhã: 0, tarde: 0, noite: 0 };
+                        dateRides.forEach(r => { shifts[r.shift] += r.value; });
+                        dateActivities.forEach(a => { if (a.shift) shifts[a.shift] += a.value; });
+                        
+                        const dayGoal = state.goals.find(g => g.date === date) || {
+                          valueGoal: state.settings.defaultValueGoal,
+                          shifts: state.settings.defaultShifts || {
+                            manhã: { countGoal: 0, valueGoal: 0 },
+                            tarde: { countGoal: 0, valueGoal: 0 },
+                            noite: { countGoal: 0, valueGoal: 0 }
+                          }
+                        };
+
+                        const dayTotal = shifts.manhã + shifts.tarde + shifts.noite;
+                        const totalGoal = dayGoal.valueGoal;
+                        const totalMissing = Math.max(0, totalGoal - dayTotal);
+                        
+                        const shiftLabels: Record<string, string> = { 'manhã': 'Manhã', 'tarde': 'Tarde', 'noite': 'Noite' };
+                        
+                        const beatenShifts = ['manhã', 'tarde', 'noite'].filter(s => {
+                          const sGoal = dayGoal.shifts?.[s as 'manhã'|'tarde'|'noite']?.valueGoal || 0;
+                          const sVal = shifts[s as 'manhã'|'tarde'|'noite'];
+                          return sGoal > 0 && sVal >= sGoal;
+                
+                        });
+                        
+                        const formattedDate = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR');
+                        
+                        return (
+                          <div key={date} className={`p-4 sm:p-5 rounded-[24px] border relative group ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-300'}`}>
+                            <button
+                              onClick={() => {
+                                const confirmDelete = window.confirm('Deseja ocultar este registro de atingimento? Os valores originais não serão apagados.');
+                                if (confirmDelete) {
+                                  setState(prev => ({
+                                    ...state,
+                                    deletedMissingGoalsDates: [...(state.deletedMissingGoalsDates || []), date]
+                                  }));
+                                }
+                              }}
+                              className={`absolute top-4 right-4 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'bg-white/10 hover:bg-red-500/20 text-white hover:text-red-400' : 'bg-black/5 hover:bg-red-50 text-slate-600 hover:text-red-500'}`}
+                              title="Apagar do histórico"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                            
+                            <p className={`text-xs font-bold uppercase tracking-widest mb-3 pr-8 ${mutedTextColor}`}>{formattedDate}</p>
+                            <div className="space-y-3">
+                              {totalMissing > 0 ? (
+                                <div className="space-y-2">
+                                  {beatenShifts.map(s => (
+                                    <p key={s} className="text-sm font-medium leading-relaxed text-emerald-600 dark:text-emerald-400">
+                                      Parabéns! Você bateu a meta da <span className="font-bold">{shiftLabels[s]}</span> no valor de R$ {shifts[s as 'manhã'|'tarde'|'noite'].toFixed(2)}.
+                                    </p>
+                                  ))}
+                                  <p className={`text-sm font-medium leading-relaxed pr-8 ${isDark ? 'text-white/80' : 'text-slate-700'}`}>
+                                    Ficou faltando <span className="font-bold font-mono text-red-500 dark:text-red-400">R$ {totalMissing.toFixed(2)}</span> para você bater a meta total do dia de R$ {totalGoal.toFixed(2)}.
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-sm font-medium leading-relaxed text-emerald-600 dark:text-emerald-400 pr-8">
+                                  Parabéns! Você bateu a meta total do dia de R$ {totalGoal.toFixed(2)}! 🏆
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                });
+        
+              })()}
             </div>
           </motion.div>
         )}
@@ -3711,6 +3842,15 @@ export default function App() {
           >
             <Fuel size={24} />
             <span className="text-[9px] sm:text-[8px] font-bold uppercase tracking-tight">Posto</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('missing_goals')}
+            className={`flex flex-col items-center gap-1 transition-all flex-shrink-0 min-w-[64px] sm:min-w-[48px] ${activeTab === 'missing_goals' ? 'scale-110' : subMutedTextColor}`}
+            style={activeTab === 'missing_goals' ? getStyle(state.settings.theme.headerColor, true) : undefined}
+          >
+            <Target size={24} />
+            <span className="text-[9px] sm:text-[8px] font-bold uppercase tracking-tight">Faltante</span>
           </button>
 
           <button 

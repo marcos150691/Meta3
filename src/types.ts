@@ -109,6 +109,7 @@ export interface AppState {
     history?: { timestamp: number; value: number; goal: number }[];
     dismissedMissingGoalDate?: string;
   };
+  deletedMissingGoalsDates?: string[];
 }
 
 export interface AppStateSnapshot {
