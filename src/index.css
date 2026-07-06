@@ -11,7 +11,10 @@
 
 @layer base {
   body {
-    @apply font-sans antialiased;
+    @apply font-sans antialiased overflow-x-hidden;
+  }
+  html {
+    @apply overflow-x-hidden;
   }
 }
 

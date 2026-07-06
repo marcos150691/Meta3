@@ -1564,7 +1564,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen ${textColor} transition-colors duration-500 pb-24 relative`} style={mainBgStyle}>
+    <div className={`min-h-screen w-full overflow-x-hidden ${textColor} transition-colors duration-500 pb-24 relative`} style={mainBgStyle}>
       <Toaster position="top-center" theme={isDark ? 'dark' : 'light'} richColors />
       {/* Header */}
       <header className="p-4 sm:p-6 pt-12 relative overflow-hidden">
