@@ -25,7 +25,8 @@ import {
   Square,
   Zap,
   Fuel,
-  X
+  X,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
@@ -379,6 +380,9 @@ export default function App() {
   const [quickValue, setQuickValue] = useState('');
   const [lastAddedValue, setLastAddedValue] = useState<number | null>(null);
   const [customFuelInput, setCustomFuelInput] = useState<string>('');
+  const [editingFuelId, setEditingFuelId] = useState<number | null>(null);
+  const [editFuelValue, setEditFuelValue] = useState<string>('');
+  const [editFuelGoal, setEditFuelGoal] = useState<string>('');
   const [showFloatingValue, setShowFloatingValue] = useState(false);
 
   const coinPaths = useMemo(() => {
@@ -1413,6 +1417,26 @@ export default function App() {
     
     if (state.settings.enableSound) playBeep();
     toast.success("Meta de combustível atingida e salva no histórico!");
+  };
+
+  const saveEditedFuelHistoryItem = (timestamp: number) => {
+    const val = parseFloat(editFuelValue.replace(',', '.'));
+    const goal = parseFloat(editFuelGoal.replace(',', '.'));
+    if (isNaN(val) || isNaN(goal)) return;
+    
+    setState(prev => {
+      if (!prev.fuelState || !prev.fuelState.history) return prev;
+      return {
+        ...prev,
+        fuelState: {
+          ...prev.fuelState,
+          history: prev.fuelState.history.map(h => 
+            h.timestamp === timestamp ? { ...h, value: val, goal: goal } : h
+          )
+        }
+      };
+    });
+    setEditingFuelId(null);
   };
 
   const deleteFuelHistoryItem = (timestamp: number) => {
@@ -2979,9 +3003,6 @@ export default function App() {
                     <span className="opacity-50 text-3xl">R$</span>
                     {Math.max(0, (state.fuelState?.goal || 50) - (state.fuelState?.date === today ? state.fuelState.currentValue : 0)).toFixed(2)}
                   </h2>
-                  <p className={`text-xs font-bold uppercase mt-2 opacity-60 ${subMutedTextColor}`}>
-                    Acumulado: R$ {(state.fuelState?.date === today ? state.fuelState.currentValue : 0).toFixed(2)}
-                  </p>
                 </div>
 
                 <div className="space-y-4">
@@ -3097,7 +3118,12 @@ export default function App() {
 
                 {state.fuelState?.history && state.fuelState.history.length > 0 && (
                   <div className="mt-8 space-y-3 pt-6 border-t border-dashed border-slate-300 dark:border-white/10">
-                    <p className={`text-xs font-bold uppercase tracking-widest ${subMutedTextColor}`}>Histórico de Abastecimento</p>
+                    <div className="flex justify-between items-center">
+                      <p className={`text-xs font-bold uppercase tracking-widest ${subMutedTextColor}`}>Histórico de Abastecimento</p>
+                      <p className="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                        Total: R$ {(state.fuelState?.history?.reduce((acc, item) => acc + item.value, 0) || 0).toFixed(2)}
+                      </p>
+                    </div>
                     <div className="space-y-2">
                       {state.fuelState.history.map(item => (
                         <div 
@@ -3108,21 +3134,78 @@ export default function App() {
                               : 'bg-slate-50 border-slate-300'
                           }`}
                         >
-                          <div>
-                            <p className={`text-[10px] font-bold uppercase tracking-widest ${subMutedTextColor}`}>
-                              {new Date(item.timestamp).toLocaleDateString('pt-BR')} às {new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                            <p className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                              R$ {item.value.toFixed(2)} <span className={`text-xs font-sans opacity-50 ${isDark ? 'text-white' : 'text-slate-600'}`}>/ Meta: R$ {item.goal.toFixed(2)}</span>
-                            </p>
+                          {editingFuelId === item.timestamp ? (
+                            <div className="flex-1 flex flex-col gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-bold ${subMutedTextColor}`}>Valor:</span>
+                                <input 
+                                  type="number"
+                                  value={editFuelValue}
+                                  onChange={e => setEditFuelValue(e.target.value)}
+                                  className={`w-24 p-1 text-sm font-mono font-bold rounded border ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-white border-slate-300 text-black'}`}
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-bold ${subMutedTextColor}`}>Meta:</span>
+                                <input 
+                                  type="number"
+                                  value={editFuelGoal}
+                                  onChange={e => setEditFuelGoal(e.target.value)}
+                                  className={`w-24 p-1 text-sm font-mono font-bold rounded border ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-white border-slate-300 text-black'}`}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className={`text-[10px] font-bold uppercase tracking-widest ${subMutedTextColor}`}>
+                                {new Date(item.timestamp).toLocaleDateString('pt-BR')} às {new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                              <p className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                                R$ {item.value.toFixed(2)} <span className={`text-xs font-sans opacity-50 ${isDark ? 'text-white' : 'text-slate-600'}`}>/ Meta: R$ {item.goal.toFixed(2)}</span>
+                              </p>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1">
+                            {editingFuelId === item.timestamp ? (
+                              <>
+                                <button
+                                  onClick={() => saveEditedFuelHistoryItem(item.timestamp)}
+                                  className="p-2 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                  title="Salvar"
+                                >
+                                  <Check size={16} />
+                                </button>
+                                <button
+                                  onClick={() => setEditingFuelId(null)}
+                                  className={`p-2 ${subMutedTextColor} hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors`}
+                                  title="Cancelar"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditingFuelId(item.timestamp);
+                                    setEditFuelValue(item.value.toString());
+                                    setEditFuelGoal(item.goal.toString());
+                                  }}
+                                  className={`p-2 ${subMutedTextColor} hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors`}
+                                  title="Editar registro"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button
+                                  onClick={() => deleteFuelHistoryItem(item.timestamp)}
+                                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                  title="Apagar registro"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </>
+                            )}
                           </div>
-                          <button
-                            onClick={() => deleteFuelHistoryItem(item.timestamp)}
-                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                            title="Apagar registro"
-                          >
-                            <Trash2 size={16} />
-                          </button>
                         </div>
                       ))}
                     </div>
