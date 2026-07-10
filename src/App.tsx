@@ -3056,14 +3056,13 @@ export default function App() {
                             {fuelBubbles.map(bubble => (
                               <div
                                 key={bubble.id}
-                                className="absolute rounded-full bg-white border border-white/60 shadow-[0_0_4px_rgba(255,255,255,0.7)] pointer-events-none"
+                                className="realistic-bubble"
                                 style={{
                                   left: `${bubble.left}%`,
                                   width: `${bubble.size}px`,
                                   height: `${bubble.size}px`,
                                   animation: `float-bubble ${bubble.duration}s infinite linear, bubble-sway ${bubble.swayDuration}s infinite ease-in-out`,
                                   animationDelay: `${bubble.delay}s`,
-                                  '--bubble-opacity': bubble.opacity,
                                 } as React.CSSProperties}
                               />
                             ))}
