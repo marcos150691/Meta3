@@ -402,6 +402,20 @@ export default function App() {
     });
   }, [showFloatingValue]);
 
+  const fuelBubbles = useMemo(() => {
+    return Array.from({ length: 25 }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 92 + 4, // keep inside borders
+      size: Math.random() * 6 + 3, // 3px to 9px
+      delay: Math.random() * 4,
+      duration: Math.random() * 3 + 2, // 2s to 5s
+      opacity: Math.random() * 0.3 + 0.7, // 0.7 to 1.0 (brighter!)
+      swayDuration: Math.random() * 2 + 1.5 // 1.5s to 3.5s
+    }));
+  }, []);
+
+  const fuelProgress = Math.min(100, Math.max(0, ((state.fuelState?.date === today ? state.fuelState.currentValue : 0) / (state.fuelState?.goal || 50)) * 100));
+
   // Timer Tick
   const [elapsedTime, setElapsedTime] = useState(0);
   
@@ -3024,15 +3038,58 @@ export default function App() {
                   
                   <div className={`h-48 w-full ${isDark ? 'bg-black/40 border-white/10' : 'bg-slate-200 border-slate-300'} rounded-[32px] relative overflow-hidden border-4 shadow-inner`}>
                     <div 
-                      className="absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-out flex items-center justify-center overflow-hidden"
+                      className="absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-out"
                       style={{ 
-                        height: `${Math.min(100, Math.max(0, ((state.fuelState?.date === today ? state.fuelState.currentValue : 0) / (state.fuelState?.goal || 50)) * 100))}%`,
+                        height: `${fuelProgress}%`,
                         background: getSolidColor(state.settings.theme.countBarColor) || '#10b981',
                         opacity: 0.85
                       }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4=')] opacity-20 mix-blend-overlay"></div>
+                      
+                      {fuelProgress > 0 && (
+                        <>
+                          {/* Inner container to clip the bubbles at the liquid surface */}
+                          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            {/* Effervescent rising bubbles */}
+                            {fuelBubbles.map(bubble => (
+                              <div
+                                key={bubble.id}
+                                className="absolute rounded-full bg-white border border-white/60 shadow-[0_0_4px_rgba(255,255,255,0.7)] pointer-events-none"
+                                style={{
+                                  left: `${bubble.left}%`,
+                                  width: `${bubble.size}px`,
+                                  height: `${bubble.size}px`,
+                                  animation: `float-bubble ${bubble.duration}s infinite linear, bubble-sway ${bubble.swayDuration}s infinite ease-in-out`,
+                                  animationDelay: `${bubble.delay}s`,
+                                  '--bubble-opacity': bubble.opacity,
+                                } as React.CSSProperties}
+                              />
+                            ))}
+                          </div>
+
+                          {/* Wave 1 (Back wave, semi-transparent, opposite motion) */}
+                          <svg 
+                            className="absolute left-0 w-[200%] h-6 -top-5 pointer-events-none animate-wave-slow opacity-40"
+                            viewBox="0 0 1200 120" 
+                            preserveAspectRatio="none"
+                            style={{ fill: getSolidColor(state.settings.theme.countBarColor) || '#10b981' }}
+                          >
+                            <path d="M0,60 C150,100 450,20 600,60 C750,100 1050,20 1200,60 L1200,120 L0,120 Z" />
+                          </svg>
+                          
+                          {/* Wave 2 (Front wave, solid, sloshing motion) */}
+                          <svg 
+                            className="absolute left-0 w-[200%] h-6 -top-5 pointer-events-none animate-wave-fast" 
+                            viewBox="0 0 1200 120" 
+                            preserveAspectRatio="none"
+                            style={{ fill: getSolidColor(state.settings.theme.countBarColor) || '#10b981' }}
+                          >
+                            <path d="M0,60 C150,20 450,100 600,60 C750,20 1050,100 1200,60 L1200,120 L0,120 Z" />
+                          </svg>
+                        </>
+                      )}
                     </div>
                     <div className="absolute inset-0 flex items-center justify-center mix-blend-overlay opacity-30">
                       <Fuel size={80} />
@@ -3135,34 +3192,44 @@ export default function App() {
                           }`}
                         >
                           {editingFuelId === item.timestamp ? (
-                            <div className="flex-1 flex flex-col gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs font-bold ${subMutedTextColor}`}>Valor:</span>
-                                <input 
-                                  type="number"
-                                  value={editFuelValue}
-                                  onChange={e => setEditFuelValue(e.target.value)}
-                                  className={`w-24 p-1 text-sm font-mono font-bold rounded border ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-white border-slate-300 text-black'}`}
-                                />
+                            <div className="flex-1 flex items-center gap-3">
+                              <div className={`p-2 rounded-lg ${isDark ? 'bg-white/10' : 'bg-slate-200/60'} text-orange-500 flex-shrink-0`}>
+                                <Fuel size={18} />
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs font-bold ${subMutedTextColor}`}>Meta:</span>
-                                <input 
-                                  type="number"
-                                  value={editFuelGoal}
-                                  onChange={e => setEditFuelGoal(e.target.value)}
-                                  className={`w-24 p-1 text-sm font-mono font-bold rounded border ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-white border-slate-300 text-black'}`}
-                                />
+                              <div className="flex-1 flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-xs font-bold ${subMutedTextColor}`}>Valor:</span>
+                                  <input 
+                                    type="number"
+                                    value={editFuelValue}
+                                    onChange={e => setEditFuelValue(e.target.value)}
+                                    className={`w-24 p-1 text-sm font-mono font-bold rounded border ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-white border-slate-300 text-black'}`}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-xs font-bold ${subMutedTextColor}`}>Meta:</span>
+                                  <input 
+                                    type="number"
+                                    value={editFuelGoal}
+                                    onChange={e => setEditFuelGoal(e.target.value)}
+                                    className={`w-24 p-1 text-sm font-mono font-bold rounded border ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-white border-slate-300 text-black'}`}
+                                  />
+                                </div>
                               </div>
                             </div>
                           ) : (
-                            <div>
-                              <p className={`text-[10px] font-bold uppercase tracking-widest ${subMutedTextColor}`}>
-                                {new Date(item.timestamp).toLocaleDateString('pt-BR')} às {new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                              <p className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                                R$ {item.value.toFixed(2)} <span className={`text-xs font-sans opacity-50 ${isDark ? 'text-white' : 'text-slate-600'}`}>/ Meta: R$ {item.goal.toFixed(2)}</span>
-                              </p>
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2.5 rounded-xl ${isDark ? 'bg-white/10' : 'bg-slate-200/60'} text-orange-500 flex-shrink-0`}>
+                                <Fuel size={20} />
+                              </div>
+                              <div>
+                                <p className={`text-[10px] font-bold uppercase tracking-widest ${subMutedTextColor}`}>
+                                  {new Date(item.timestamp).toLocaleDateString('pt-BR')} às {new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                                <p className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                                  R$ {item.value.toFixed(2)} <span className={`text-xs font-sans opacity-50 ${isDark ? 'text-white' : 'text-slate-600'}`}>/ Meta: R$ {item.goal.toFixed(2)}</span>
+                                </p>
+                              </div>
                             </div>
                           )}
                           <div className="flex items-center gap-1">
@@ -3299,7 +3366,10 @@ export default function App() {
                 
                         });
                         
-                        const formattedDate = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR');
+                        const dateObj = new Date(date + 'T12:00:00');
+                        const formattedDate = dateObj.toLocaleDateString('pt-BR');
+                        const weekday = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
+                        const capitalizedWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
                         
                         return (
                           <div key={date} className={`p-4 sm:p-5 rounded-[24px] border relative group ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-300'}`}>
@@ -3319,7 +3389,7 @@ export default function App() {
                               <Trash2 size={16} />
                             </button>
                             
-                            <p className={`text-xs font-bold uppercase tracking-widest mb-3 pr-8 ${mutedTextColor}`}>{formattedDate}</p>
+                            <p className={`text-xs font-bold uppercase tracking-widest mb-3 pr-8 ${mutedTextColor}`}>{formattedDate} • {capitalizedWeekday}</p>
                             <div className="space-y-3">
                               {totalMissing > 0 ? (
                                 <div className="space-y-2">
