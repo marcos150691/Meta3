@@ -2001,7 +2001,7 @@ export default function App() {
                       }`}
                       style={getStyle(state.settings.theme.countBarColor, true)}
                     >
-                      +1 Corrida
+                      +1
                     </button>
                     <button 
                       onClick={() => {
@@ -2015,7 +2015,22 @@ export default function App() {
                       }`}
                       style={getStyle(state.settings.theme.countBarColor, true)}
                     >
-                      +2 Corridas
+                      +2
+                    </button>
+                    <button 
+                      onClick={() => {
+                        quickAddRide(0, 'Corrida +1');
+                        quickAddRide(0, 'Corrida +1');
+                        quickAddRide(0, 'Corrida +1');
+                      }}
+                      className={`flex-1 py-3 px-4 rounded-lg text-lg font-bold uppercase tracking-widest transition-colors border ${
+                        isDark 
+                          ? 'border-white/10 bg-white/5 hover:bg-white/10' 
+                          : 'border-slate-300 bg-slate-50 hover:bg-slate-150 active:bg-slate-200 shadow-sm'
+                      }`}
+                      style={getStyle(state.settings.theme.countBarColor, true)}
+                    >
+                      +3
                     </button>
                   </div>
                 </div>
@@ -2215,7 +2230,7 @@ export default function App() {
                   </div>
 
                   {/* Quick Buttons for Revenue */}
-                  <div className="grid grid-cols-4 gap-2 pt-2">
+                  <div className="grid grid-cols-5 gap-2 pt-2">
                     <form 
                       onSubmit={handleQuickValueSubmit}
                       className="col-span-1 flex"
@@ -2229,7 +2244,7 @@ export default function App() {
                         className={`w-full py-3 px-2 text-lg font-mono font-bold rounded-lg border ${isDark ? 'bg-white/5 border-white/10 text-white focus:border-white/30' : 'bg-slate-100 border-slate-300 text-slate-900 focus:bg-white focus:border-slate-500'} focus:outline-none transition-colors placeholder:text-[10px]`}
                       />
                     </form>
-                    {[4, 5, 6, 7, 8, 9, 10].map(val => (
+                    {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
                       <button 
                         key={val}
                         onClick={() => quickAddRide(val, `Corrida R$ ${val}`)}
@@ -3113,7 +3128,7 @@ export default function App() {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1 sm:gap-2">
                     <form 
                       onSubmit={(e) => {
                         e.preventDefault();
@@ -3137,7 +3152,7 @@ export default function App() {
                         style={getStyle(state.settings.theme.headerColor, true)} 
                       />
                     </form>
-                    {[4, 5, 6, 7, 8, 9, 10].map(val => (
+                    {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
                       <button
                         key={val}
                         onClick={() => {
@@ -3371,7 +3386,7 @@ export default function App() {
                         const capitalizedWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
                         
                         return (
-                          <div key={date} className={`p-4 sm:p-5 rounded-[24px] border relative group ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-300'}`}>
+                          <div key={date} className={`p-4 sm:p-5 rounded-[24px] border relative group ${isDark ? 'bg-white/10 border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'bg-white border-slate-300 shadow-md'}`}>
                             <button
                               onClick={() => {
                                 const confirmDelete = window.confirm('Deseja ocultar este registro de atingimento? Os valores originais não serão apagados.');
@@ -3388,7 +3403,7 @@ export default function App() {
                               <Trash2 size={16} />
                             </button>
                             
-                            <p className={`text-xs font-bold uppercase tracking-widest mb-3 pr-8 ${mutedTextColor}`}>{formattedDate} • {capitalizedWeekday}</p>
+                            <p className={`text-xs font-bold uppercase tracking-widest mb-3 pr-8 ${isDark ? 'text-white/80' : mutedTextColor}`}>{formattedDate} • {capitalizedWeekday}</p>
                             <div className="space-y-3">
                               {totalMissing > 0 ? (
                                 <div className="space-y-2">
@@ -3397,8 +3412,8 @@ export default function App() {
                                       Parabéns! Você bateu a meta da <span className="font-bold">{shiftLabels[s]}</span> no valor de R$ {shifts[s as 'manhã'|'tarde'|'noite'].toFixed(2)}.
                                     </p>
                                   ))}
-                                  <p className={`text-sm font-medium leading-relaxed pr-8 ${isDark ? 'text-white/80' : 'text-slate-700'}`}>
-                                    Ficou faltando <span className="font-bold font-mono text-red-500 dark:text-red-400">R$ {totalMissing.toFixed(2)}</span> para você bater a meta total do dia de R$ {totalGoal.toFixed(2)}.
+                                  <p className={`text-sm font-medium leading-relaxed pr-8 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                    Ficou faltando <span className="font-bold font-mono text-red-500 dark:text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">R$ {totalMissing.toFixed(2)}</span> para você bater a meta total do dia de R$ {totalGoal.toFixed(2)}.
                                   </p>
                                 </div>
                               ) : (
