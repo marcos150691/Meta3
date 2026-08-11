@@ -2333,8 +2333,9 @@ export default function App() {
               <div className="flex justify-between items-center z-10 relative">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <p className={`${mutedTextColor} text-lg uppercase font-mono tracking-widest`}>
-                      Dinheiro Guardado
+                    <p className={`${mutedTextColor} text-lg uppercase font-mono tracking-widest flex flex-col`}>
+                      <span className="text-xs opacity-70">Dinheiro Guardado</span>
+                      <span>Total Acumulado</span>
                     </p>
                     <div className="flex gap-2">
                       {(state.vaultState?.currentValue || 0) > 0 && (
@@ -2382,7 +2383,7 @@ export default function App() {
                     </button>
                   </div>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className={`${subMutedTextColor} text-xs font-bold uppercase tracking-widest`}>Meta do Mês:</span>
+                    <span className={`${subMutedTextColor} text-xs font-bold uppercase tracking-widest`}>Meta Diária:</span>
                     <input
                       type="number"
                       value={state.vaultState?.goal === undefined ? 100 : (state.vaultState.goal || '')}
