@@ -430,6 +430,9 @@ export default function App() {
   
   const vaultProgress = Math.min(100, Math.max(0, ((state.vaultState?.currentValue || 0) / (state.vaultState?.goal || 100)) * 100));
 
+  // Dropping coins for vault animation
+  const [droppingCoins, setDroppingCoins] = useState<{id: string, amount: number, left: number}[]>([]);
+
   // Timer Tick
   const [elapsedTime, setElapsedTime] = useState(0);
   
@@ -1181,16 +1184,12 @@ export default function App() {
     
     // Coin effect
     if (state.settings.enableAnimation) {
-      confetti({
-        particleCount: 15,
-        spread: 50,
-        origin: { y: 0.8 },
-        colors: ['#eab308', '#ca8a04', '#fef08a'],
-        shapes: ['circle'],
-        scalar: 1.2,
-        gravity: 1.5,
-        ticks: 50
-      });
+      const coinId = crypto.randomUUID();
+      const randomLeft = Math.random() * 60 + 20; // 20% to 80% left
+      setDroppingCoins(prev => [...prev, { id: coinId, amount, left: randomLeft }]);
+      setTimeout(() => {
+        setDroppingCoins(prev => prev.filter(c => c.id !== coinId));
+      }, 1000);
     }
   };
 
@@ -2402,6 +2401,21 @@ export default function App() {
                 
                 {/* Vault Animation Container */}
                 <div className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-4 ${isDark ? 'bg-black/40 border-white/10' : 'bg-slate-200 border-slate-300'} shadow-inner flex-shrink-0`}>
+                  
+                  {/* Dropping Coins Overlay */}
+                  {droppingCoins.map(coin => (
+                    <div 
+                      key={coin.id}
+                      className="absolute z-20 text-yellow-500 font-extrabold font-mono flex items-center justify-center bg-yellow-300 rounded-full w-8 h-8 border-2 border-yellow-600 shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                      style={{
+                        left: `${coin.left}%`,
+                        animation: `coin-drop 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`,
+                      }}
+                    >
+                      $
+                    </div>
+                  ))}
+
                   <div 
                     className="absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-out bg-green-500"
                     style={{ 
