@@ -26,7 +26,8 @@ import {
   Zap,
   Fuel,
   X,
-  Check
+  Check,
+  Vault
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
@@ -415,6 +416,19 @@ export default function App() {
   }, []);
 
   const fuelProgress = Math.min(100, Math.max(0, ((state.fuelState?.date === today ? state.fuelState.currentValue : 0) / (state.fuelState?.goal || 50)) * 100));
+
+  const vaultMoney = useMemo(() => {
+    return Array.from({ length: 15 }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 80 + 10,
+      size: Math.random() * 8 + 8, // 8px to 16px
+      delay: Math.random() * 4,
+      duration: Math.random() * 3 + 2,
+      swayDuration: Math.random() * 2 + 1.5
+    }));
+  }, []);
+  
+  const vaultProgress = Math.min(100, Math.max(0, ((state.vaultState?.currentValue || 0) / (state.vaultState?.goal || 100)) * 100));
 
   // Timer Tick
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -1047,7 +1061,8 @@ export default function App() {
       rides: prevState.rides,
       activities: prevState.activities,
       goals: prevState.goals,
-      fuelState: prevState.fuelState
+      fuelState: prevState.fuelState,
+      vaultState: prevState.vaultState
     };
     return [snapshot, ...prevState.history].slice(0, 10); // Keep last 10 actions
   };
@@ -1123,6 +1138,37 @@ export default function App() {
     setNewActivityDate(activity.date);
     setNewActivityShift(activity.shift || 'manhã');
     setIsAddingActivity(true);
+  };
+
+  const addToVault = (amount: number) => {
+    setState(prev => ({
+      ...prev,
+      history: saveHistory(prev),
+      vaultState: {
+        ...prev.vaultState,
+        currentValue: (prev.vaultState?.currentValue || 0) + amount,
+        history: [
+          ...(prev.vaultState?.history || []),
+          { id: crypto.randomUUID(), date: today, amount, timestamp: Date.now() }
+        ]
+      }
+    }));
+    
+    // Play cash register sound if enabled
+    if (state.settings.enableSound && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(e => console.log('Audio play failed:', e));
+    }
+    
+    // Confetti effect
+    if (state.settings.enableAnimation) {
+      confetti({
+        particleCount: 40,
+        spread: 60,
+        origin: { y: 0.8 },
+        colors: ['#22c55e', '#16a34a', '#fbbf24', '#f59e0b']
+      });
+    }
   };
 
   const quickAddRide = (value: number, description: string = 'Corrida', date: string = today) => {
@@ -2260,43 +2306,108 @@ export default function App() {
               </div>
             </div>
 
-            {/* Journey Card */}
-            <div className={`${cardClass} p-4 sm:p-6 border-l-4 border-green-500`}>
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 mb-1">
+            {/* Vault Card */}
+            <div className={`${cardClass} p-4 sm:p-6 border-l-4 border-green-500 overflow-hidden relative`}>
+              <div className="flex justify-between items-center z-10 relative">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
                     <p className={`${mutedTextColor} text-lg uppercase font-mono tracking-widest`}>
-                      Tempo de Trabalho
+                      Dinheiro Guardado
                     </p>
-                    {state.workTimer?.isRunning && (
-                      <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    )}
-                    {state.dailyJourneys?.[today] && (
-                      <button 
-                        onClick={() => {
-                          if (confirm('Deseja apagar TODO o tempo já registrado hoje?') && state.dailyJourneys?.[today]) {
-                            Object.keys(state.dailyJourneys[today]).forEach(shift => {
-                              deleteJourneyTime(today, shift);
-                            });
-                          }
-                    
-                        }}
-                        className={`ml-2 p-1.5 rounded-xl ${subMutedTextColor} hover:text-red-500 hover:bg-red-500/10 active:scale-95 transition-all flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
-                        title="Zerar registros de hoje"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                    <div className="flex gap-2">
+                      {(state.vaultState?.currentValue || 0) > 0 && (
+                        <button 
+                          onClick={() => {
+                            if (confirm('Deseja zerar o cofre?')) {
+                              setState(prev => ({
+                                ...prev,
+                                history: saveHistory(prev),
+                                vaultState: { ...prev.vaultState, currentValue: 0 }
+                              }));
+                            }
+                          }}
+                          className={`p-1.5 rounded-xl ${subMutedTextColor} hover:text-red-500 hover:bg-red-500/10 active:scale-95 transition-all flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
+                          title="Zerar cofre"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                      {state.history.length > 0 && (
+                        <button
+                          onClick={undo}
+                          className={`p-1.5 rounded-xl ${subMutedTextColor} hover:text-white transition-all flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
+                          title="Desfazer última ação"
+                        >
+                          <RotateCcw size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <h2 className="text-5xl sm:text-7xl font-bold font-mono tracking-tight">
-                    {formatElapsedTime(todayStats.journeyTime)}
+                  <h2 className="text-5xl sm:text-6xl font-bold font-mono tracking-tight text-green-500">
+                    R$ {state.vaultState?.currentValue || 0}
                   </h2>
-                  <p className={`${subMutedTextColor} text-[10px] font-mono mt-1 uppercase tracking-widest`}>
-                    {dashboardShift === 'dia' ? 'Total Trabalhado Hoje' : `Jornada no turno ${dashboardShift}`}
-                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => addToVault(1)}
+                      className={`flex-1 py-2 px-4 rounded-lg font-bold transition-all border shadow-sm flex items-center justify-center gap-1 bg-green-500 text-white hover:bg-green-600 active:scale-95 border-green-600`}
+                    >
+                      <Plus size={16} /> R$ 1
+                    </button>
+                    <button
+                      onClick={() => addToVault(2)}
+                      className={`flex-1 py-2 px-4 rounded-lg font-bold transition-all border shadow-sm flex items-center justify-center gap-1 bg-green-500 text-white hover:bg-green-600 active:scale-95 border-green-600`}
+                    >
+                      <Plus size={16} /> R$ 2
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`${subMutedTextColor} text-xs font-bold uppercase tracking-widest`}>Meta do Mês:</span>
+                    <input
+                      type="number"
+                      value={state.vaultState?.goal === undefined ? 100 : (state.vaultState.goal || '')}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setState(prev => ({
+                          ...prev,
+                          vaultState: { ...prev.vaultState, goal: val, currentValue: prev.vaultState?.currentValue || 0 }
+                        }));
+                      }}
+                      className={`w-20 p-1 text-center font-mono font-bold text-sm rounded-lg border ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-black/5 border-black/10 text-black'} focus:outline-none focus:border-white/30`}
+                      placeholder="Ex: 100"
+                    />
+                  </div>
                 </div>
-                <div className={`p-4 rounded-3xl ${state.workTimer?.isRunning ? 'bg-green-500/20 text-green-500 border border-green-500/20' : isDark ? 'bg-white/5 text-white/40 border border-white/5' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
-                  <Clock size={40} strokeWidth={state.workTimer?.isRunning ? 2.5 : 2} />
+                
+                {/* Vault Animation Container */}
+                <div className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-4 ${isDark ? 'bg-black/40 border-white/10' : 'bg-slate-200 border-slate-300'} shadow-inner flex-shrink-0`}>
+                  <div 
+                    className="absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-out bg-green-500"
+                    style={{ 
+                      height: `${vaultProgress}%`,
+                      opacity: 0.85
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      {vaultMoney.map(money => (
+                        <div
+                          key={money.id}
+                          className="absolute text-green-100 font-bold font-mono drop-shadow-md"
+                          style={{
+                            left: `${money.left}%`,
+                            fontSize: `${money.size}px`,
+                            animation: `float-bubble ${money.duration}s infinite linear, bubble-sway ${money.swayDuration}s infinite ease-in-out`,
+                            animationDelay: `${money.delay}s`,
+                          }}
+                        >
+                          $
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center mix-blend-overlay opacity-30">
+                    <Vault size={60} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -2868,6 +2979,36 @@ export default function App() {
                 </div>
               ))}
             </div>
+
+            {/* Vault History Card */}
+            {state.vaultState?.history && state.vaultState.history.filter(h => h.date.startsWith(selectedMonth)).length > 0 && (
+              <div className={`${cardClass} p-4 sm:p-6 space-y-4`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Vault className={`${mutedTextColor}`} size={20} />
+                  <h4 className={`text-base font-bold uppercase tracking-widest ${isDark ? 'opacity-60' : 'text-black font-extrabold'}`}>
+                    Histórico de Dinheiro Guardado ({selectedMonth.split('-').reverse().join('/')})
+                  </h4>
+                </div>
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                  {state.vaultState.history
+                    .filter(h => h.date.startsWith(selectedMonth))
+                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .map(h => (
+                    <div key={h.id} className={`flex justify-between items-center p-3 rounded-lg border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex flex-col">
+                        <span className={`text-base font-bold font-mono text-green-500`}>+ R$ {h.amount}</span>
+                        <span className={`text-[10px] uppercase font-mono tracking-widest ${subMutedTextColor}`}>
+                          {new Date(h.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] uppercase font-bold tracking-widest text-green-500 bg-green-500/10 px-2 py-1 rounded`}>
+                        Guardado
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Recent Activities List */}
             <div className="space-y-4">
