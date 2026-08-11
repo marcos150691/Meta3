@@ -1140,10 +1140,29 @@ export default function App() {
     setIsAddingActivity(true);
   };
 
+  const undoVault = () => {
+    setState(prev => {
+      if (!prev.vaultState?.history || prev.vaultState.history.length === 0) return prev;
+      
+      const newHistory = [...prev.vaultState.history];
+      const lastAction = newHistory.pop();
+      
+      if (!lastAction) return prev;
+
+      return {
+        ...prev,
+        vaultState: {
+          ...prev.vaultState,
+          currentValue: Math.max(0, (prev.vaultState.currentValue || 0) - lastAction.amount),
+          history: newHistory
+        }
+      };
+    });
+  };
+
   const addToVault = (amount: number) => {
     setState(prev => ({
       ...prev,
-      history: saveHistory(prev),
       vaultState: {
         ...prev.vaultState,
         currentValue: (prev.vaultState?.currentValue || 0) + amount,
@@ -1160,13 +1179,17 @@ export default function App() {
       audioRef.current.play().catch(e => console.log('Audio play failed:', e));
     }
     
-    // Confetti effect
+    // Coin effect
     if (state.settings.enableAnimation) {
       confetti({
-        particleCount: 40,
-        spread: 60,
+        particleCount: 15,
+        spread: 50,
         origin: { y: 0.8 },
-        colors: ['#22c55e', '#16a34a', '#fbbf24', '#f59e0b']
+        colors: ['#eab308', '#ca8a04', '#fef08a'],
+        shapes: ['circle'],
+        scalar: 1.2,
+        gravity: 1.5,
+        ticks: 50
       });
     }
   };
@@ -2321,8 +2344,7 @@ export default function App() {
                             if (confirm('Deseja zerar o cofre?')) {
                               setState(prev => ({
                                 ...prev,
-                                history: saveHistory(prev),
-                                vaultState: { ...prev.vaultState, currentValue: 0 }
+                                vaultState: { ...prev.vaultState, currentValue: 0, history: [] }
                               }));
                             }
                           }}
@@ -2332,9 +2354,9 @@ export default function App() {
                           <Trash2 size={16} />
                         </button>
                       )}
-                      {state.history.length > 0 && (
+                      {(state.vaultState?.history?.length || 0) > 0 && (
                         <button
-                          onClick={undo}
+                          onClick={undoVault}
                           className={`p-1.5 rounded-xl ${subMutedTextColor} hover:text-white transition-all flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
                           title="Desfazer última ação"
                         >
