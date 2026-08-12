@@ -385,6 +385,8 @@ export default function App() {
   const [editFuelValue, setEditFuelValue] = useState<string>('');
   const [editFuelGoal, setEditFuelGoal] = useState<string>('');
   const [showFloatingValue, setShowFloatingValue] = useState(false);
+  const [showVaultFloatingValue, setShowVaultFloatingValue] = useState(false);
+  const [lastVaultAddedValue, setLastVaultAddedValue] = useState<number | null>(null);
 
   const coinPaths = useMemo(() => {
     return Array.from({ length: 6 }).map((_, i) => {
@@ -402,6 +404,23 @@ export default function App() {
       };
     });
   }, [showFloatingValue]);
+
+  const vaultCoinPaths = useMemo(() => {
+    return Array.from({ length: 8 }).map((_, i) => {
+      const startX = 10 + Math.random() * 15;
+      const startY = 60 + Math.random() * 10;
+      const peakY = 10 + (Math.random() * 15);
+      const peakX = startX + (85 - startX) * 0.5 + (Math.random() * 10 - 5);
+      return {
+        delay: i * 0.1,
+        duration: 0.7 + Math.random() * 0.2,
+        x: [ `${startX}%`, `${peakX}%`, `85%` ],
+        y: [ `${startY}%`, `${peakY}%`, `60%` ], // 60% is roughly center of the right vault container
+        rotate: [ 0, 180, 360 + Math.random() * 180 ],
+        scale: [ 0.5, 1.2, 0.6 ]
+      };
+    });
+  }, [showVaultFloatingValue]);
 
   const fuelBubbles = useMemo(() => {
     return Array.from({ length: 25 }).map((_, i) => ({
@@ -429,9 +448,6 @@ export default function App() {
   }, []);
   
   const vaultProgress = Math.min(100, Math.max(0, ((state.vaultState?.currentValue || 0) / (state.vaultState?.goal || 100)) * 100));
-
-  // Dropping coins for vault animation
-  const [droppingCoins, setDroppingCoins] = useState<{id: string, amount: number, left: number}[]>([]);
 
   // Timer Tick
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -1176,6 +1192,8 @@ export default function App() {
       }
     }));
     
+    setLastVaultAddedValue(amount);
+    
     // Play cash register sound if enabled
     if (state.settings.enableSound && audioRef.current) {
       audioRef.current.currentTime = 0;
@@ -1184,12 +1202,8 @@ export default function App() {
     
     // Coin effect
     if (state.settings.enableAnimation) {
-      const coinId = crypto.randomUUID();
-      const randomLeft = Math.random() * 60 + 20; // 20% to 80% left
-      setDroppingCoins(prev => [...prev, { id: coinId, amount, left: randomLeft }]);
-      setTimeout(() => {
-        setDroppingCoins(prev => prev.filter(c => c.id !== coinId));
-      }, 1000);
+      setShowVaultFloatingValue(true);
+      setTimeout(() => setShowVaultFloatingValue(false), 2000);
     }
   };
 
@@ -1669,11 +1683,33 @@ export default function App() {
     return color;
   };
 
+  // Vault Calculations
+  const vaultStartOfWeekDate = new Date(new Date().setDate(new Date().getDate() - new Date().getDay()));
+  const vaultStartOfWeekString = vaultStartOfWeekDate.toISOString().split('T')[0];
+  
+  const vaultHistoryMonth = state.vaultState?.history?.filter(h => h.date.startsWith(selectedMonth)) || [];
+  const vaultTotalMonth = vaultHistoryMonth.reduce((acc, curr) => acc + curr.amount, 0);
+
+  const vaultHistoryWeek = state.vaultState?.history?.filter(h => h.date >= vaultStartOfWeekString) || [];
+  const vaultTotalWeek = vaultHistoryWeek.reduce((acc, curr) => acc + curr.amount, 0);
+
   return (
     <div className={`min-h-screen w-full overflow-x-hidden ${textColor} transition-colors duration-500 pb-24 relative`} style={mainBgStyle}>
       <Toaster position="top-center" theme={isDark ? 'dark' : 'light'} richColors />
       {/* Header */}
-      <header className="p-4 sm:p-6 pt-12 relative overflow-hidden">
+      <header className={`p-4 sm:p-6 pt-12 pb-8 relative overflow-hidden ${activeTab === 'dashboard' ? 'rounded-b-[2.5rem] shadow-2xl mb-2' : ''}`}>
+        {activeTab === 'dashboard' && (
+          <div className="absolute inset-0 z-0">
+            <img 
+              src={MotoHeaderImg} 
+              alt="Motorcycle Background" 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+            <div className={`absolute inset-0 ${isDark ? 'bg-black/60' : 'bg-black/50'} backdrop-blur-[2px]`}></div>
+          </div>
+        )}
+        
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <div 
@@ -1682,11 +1718,11 @@ export default function App() {
             >
               <Bike className="text-white" size={24} />
             </div>
-            <h1 className="text-5xl font-bold tracking-tighter uppercase italic">
-              Marcos <span style={getStyle(state.settings.theme.headerColor, true)}>Meta</span>
+            <h1 className={`text-5xl font-bold tracking-tighter uppercase italic ${activeTab === 'dashboard' ? 'text-white drop-shadow-md' : ''}`}>
+              Asfalto <span style={getStyle(state.settings.theme.headerColor, true)}>Meta</span>
             </h1>
           </div>
-          <p className={`${mutedTextColor} text-sm font-mono`}>
+          <p className={`${activeTab === 'dashboard' ? 'text-white/80 drop-shadow' : mutedTextColor} text-sm font-mono`}>
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
@@ -1696,19 +1732,8 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <motion.div 
             {...motionProps({ opacity: 0, y: 20 }, { opacity: 1, y: 0 })}
-            className="space-y-6"
+            className="space-y-6 pt-2"
           >
-            {/* Hero Image */}
-            <div className="w-full h-48 sm:h-64 rounded-3xl overflow-hidden shadow-2xl border border-white/5 relative group">
-              <img 
-                src={MotoHeaderImg} 
-                alt="Motorcycle Graphic" 
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
-            </div>
-
             {/* Work Timer Section */}
             <div className={`${cardClass} p-3 sm:p-4 flex flex-col gap-2 relative overflow-hidden ring-1 ring-white/5`}>
               <div className="flex justify-between items-center relative z-10">
@@ -2403,19 +2428,49 @@ export default function App() {
                 {/* Vault Animation Container */}
                 <div className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-4 ${isDark ? 'bg-black/40 border-white/10' : 'bg-slate-200 border-slate-300'} shadow-inner flex-shrink-0`}>
                   
-                  {/* Dropping Coins Overlay */}
-                  {droppingCoins.map(coin => (
-                    <div 
-                      key={coin.id}
-                      className="absolute z-20 text-yellow-500 font-extrabold font-mono flex items-center justify-center bg-yellow-300 rounded-full w-8 h-8 border-2 border-yellow-600 shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-                      style={{
-                        left: `${coin.left}%`,
-                        animation: `coin-drop 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`,
-                      }}
-                    >
-                      $
-                    </div>
-                  ))}
+                  {/* Dropping Coins Overlay (New identical to Faturamento) */}
+                  <AnimatePresence>
+                    {showVaultFloatingValue && lastVaultAddedValue && (
+                      <>
+                        {vaultCoinPaths.map((path, idx) => (
+                          <motion.div
+                            key={idx}
+                            initial={{ 
+                              left: path.x[0], 
+                              top: path.y[0], 
+                              opacity: 0, 
+                              scale: path.scale[0],
+                              rotate: 0 
+                            }}
+                            animate={{ 
+                              left: path.x, 
+                              top: path.y, 
+                              opacity: [0, 1, 1, 0],
+                              scale: path.scale,
+                              rotate: path.rotate 
+                            }}
+                            transition={{ 
+                              duration: path.duration, 
+                              delay: path.delay,
+                              ease: "easeInOut"
+                            }}
+                            className="absolute z-20 text-yellow-500 font-extrabold font-mono flex items-center justify-center bg-yellow-300 rounded-full w-8 h-8 border-2 border-yellow-600 shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                          >
+                            $
+                          </motion.div>
+                        ))}
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5, y: 0 }}
+                          animate={{ opacity: [0, 1, 1, 0], scale: [1, 1.3, 1], y: -45 }}
+                          transition={{ duration: 1.2, delay: 0.6 }}
+                          className="absolute top-[20%] right-[10%] font-bold text-xl sm:text-2xl text-green-400 pointer-events-none z-50 font-mono"
+                          style={{ textShadow: '0 0 15px rgba(74, 222, 128, 0.6)' }}
+                        >
+                          +R$ {lastVaultAddedValue.toFixed(2)}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
 
                   <div 
                     className="absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-out bg-green-500"
@@ -2740,33 +2795,44 @@ export default function App() {
                               </div>
                             </div>
                             
-                            <div className={`${cardClass} overflow-hidden`}>
-                              {shiftRides.map((ride, idx) => (
+                            <div className={`${cardClass} overflow-hidden divide-y ${isDark ? 'divide-white/5' : 'divide-slate-200'}`}>
+                              {shiftRides.map((ride) => (
                                 <div 
                                   key={ride.id} 
-                                  className={`p-4 flex justify-between items-center ${idx !== shiftRides.length - 1 ? isDark ? 'border-b border-white/5' : 'border-b border-slate-200' : ''}`}
+                                  className="p-3 sm:p-4 flex justify-between items-center hover:bg-white/5 transition-colors"
                                 >
-                                  <div className="flex items-center gap-3">
-                                    <div className={subMutedTextColor}><Bike size={16} /></div>
-                                    <div>
-                                      <p className="text-base font-medium">{ride.description}</p>
-                                      <p className={`text-xs font-mono ${subMutedTextColor} uppercase tracking-tighter`}>
-                                        {ride.shift}
+                                  <div className="flex items-center gap-3 sm:gap-4">
+                                    <div className={`p-2 sm:p-2.5 rounded-full ${isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-400'} flex-shrink-0`}>
+                                      <Bike size={16} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <p className={`text-sm sm:text-base font-bold ${isDark ? 'text-white/90' : 'text-slate-900'}`}>
+                                        {ride.description || 'Corrida Concluída'}
                                       </p>
+                                      <div className="flex items-center gap-1.5 mt-0.5">
+                                        <Clock size={10} className={subMutedTextColor} />
+                                        <p className={`text-[10px] font-mono ${subMutedTextColor} uppercase tracking-widest`}>
+                                          {new Date(ride.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-3">
-                                    <p className={`text-base font-mono font-bold`} style={getStyle(state.settings.theme.valueBarColor, true)}>R$ {ride.value.toFixed(2)}</p>
-                                    <div className="flex gap-2">
+                                  <div className="flex items-center gap-3 sm:gap-4">
+                                    <p className={`text-sm sm:text-base font-mono font-black`} style={getStyle(state.settings.theme.valueBarColor, true)}>
+                                      + R$ {ride.value.toFixed(2)}
+                                    </p>
+                                    <div className={`flex gap-1 border-l pl-2 sm:pl-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                       <button 
                                         onClick={() => startEdit(ride)}
-                                        className={`${subMutedTextColor} hover:text-blue-500 transition-colors p-1`}
+                                        className={`p-1.5 sm:p-2 rounded-lg hover:bg-blue-500/10 ${isDark ? 'text-white/30 hover:text-blue-400' : 'text-slate-400 hover:text-blue-600'} transition-all`}
+                                        title="Editar"
                                       >
                                         <Edit2 size={14} />
                                       </button>
                                       <button 
                                         onClick={() => deleteRide(ride.id)}
-                                        className={`${subMutedTextColor} hover:text-red-500 transition-colors p-1`}
+                                        className={`p-1.5 sm:p-2 rounded-lg hover:bg-red-500/10 ${isDark ? 'text-white/30 hover:text-red-400' : 'text-slate-400 hover:text-red-600'} transition-all`}
+                                        title="Excluir"
                                       >
                                         <Trash2 size={14} />
                                       </button>
@@ -3026,6 +3092,19 @@ export default function App() {
                     Histórico de Dinheiro Guardado ({selectedMonth.split('-').reverse().join('/')})
                   </h4>
                 </div>
+
+                {/* Vault Totals */}
+                <div className={`grid grid-cols-2 gap-4 pb-4 border-b ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+                  <div className="flex flex-col">
+                    <span className={`text-[10px] uppercase font-mono tracking-widest ${subMutedTextColor}`}>Nesta Semana</span>
+                    <span className="text-xl font-bold font-mono text-green-500">R$ {vaultTotalWeek.toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-col text-right">
+                    <span className={`text-[10px] uppercase font-mono tracking-widest ${subMutedTextColor}`}>Neste Mês</span>
+                    <span className="text-xl font-bold font-mono text-green-500">R$ {vaultTotalMonth.toFixed(2)}</span>
+                  </div>
+                </div>
+
                 <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                   {state.vaultState.history
                     .filter(h => h.date.startsWith(selectedMonth))

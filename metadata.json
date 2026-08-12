@@ -1,5 +1,8 @@
 {
-  "name": "Remix: Remix: remix 2 de metas do Uber ",
+  "name": "Asfalto Meta",
   "description": "Aplicativo de produtividade para motoristas e entregadores, com metas diárias, controle financeiro, histórico de faturamento e cronômetro de jornada.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
