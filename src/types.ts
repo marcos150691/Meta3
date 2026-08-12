@@ -83,6 +83,12 @@ export interface AppState {
     enableShiftTracking?: boolean;
     enableMonthlyGoal?: boolean;
     selectedRideSound?: string;
+    notifications?: {
+      enabled: boolean;
+      dailyReminderTime?: string;
+      goalReminder?: boolean;
+      drinkWaterReminder?: boolean;
+    };
     theme: {
       headerColor: string;
       countBarColor: string;

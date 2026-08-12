@@ -27,7 +27,9 @@ import {
   Fuel,
   X,
   Check,
-  Vault
+  Vault,
+  Trophy,
+  Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
@@ -387,6 +389,10 @@ export default function App() {
   const [showFloatingValue, setShowFloatingValue] = useState(false);
   const [showVaultFloatingValue, setShowVaultFloatingValue] = useState(false);
   const [lastVaultAddedValue, setLastVaultAddedValue] = useState<number | null>(null);
+  
+  const [levelUpData, setLevelUpData] = useState<{ type: 'weekly' | 'monthly', amount: number } | null>(null);
+  const prevFinanceRef = useRef({ week: 0, month: 0 });
+  const isFinanceInitialRender = useRef(true);
 
   const coinPaths = useMemo(() => {
     return Array.from({ length: 6 }).map((_, i) => {
@@ -447,7 +453,13 @@ export default function App() {
     }));
   }, []);
   
-  const vaultProgress = Math.min(100, Math.max(0, ((state.vaultState?.currentValue || 0) / (state.vaultState?.goal || 100)) * 100));
+  const todayVaultValue = useMemo(() => {
+    return (state.vaultState?.history || [])
+      .filter(h => h.date === today)
+      .reduce((acc, curr) => acc + curr.amount, 0);
+  }, [state.vaultState?.history, today]);
+
+  const vaultProgress = Math.min(100, Math.max(0, (todayVaultValue / (state.vaultState?.goal || 100)) * 100));
 
   // Timer Tick
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -967,6 +979,46 @@ export default function App() {
     };
   }, [state.activities, state.rides, today]);
 
+  // Weekly & Monthly Level Up logic
+  useEffect(() => {
+    const currentWeekValue = financeStats.week.totalRecebido;
+    const currentMonthValue = financeStats.month.totalRecebido;
+    
+    if (isFinanceInitialRender.current) {
+      isFinanceInitialRender.current = false;
+      prevFinanceRef.current = { week: currentWeekValue, month: currentMonthValue };
+      return;
+    }
+
+    const weeklyGoal = monthlyStats.weeklyNeeded;
+    const monthlyGoal = monthlyStats.goal;
+
+    const prevWeek = prevFinanceRef.current.week;
+    const prevMonth = prevFinanceRef.current.month;
+
+    let triggered = false;
+
+    if (monthlyGoal > 0 && prevMonth < monthlyGoal && currentMonthValue >= monthlyGoal) {
+      setLevelUpData({ type: 'monthly', amount: monthlyGoal });
+      triggered = true;
+      confetti({ particleCount: 300, spread: 120, origin: { y: 0.4 }, colors: ['#fbbf24', '#f59e0b', '#d97706'] });
+    } else if (weeklyGoal > 0 && prevWeek < weeklyGoal && currentWeekValue >= weeklyGoal) {
+      setLevelUpData({ type: 'weekly', amount: weeklyGoal });
+      triggered = true;
+      confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ['#4ade80', '#22c55e', '#16a34a'] });
+    }
+
+    if (triggered) {
+      if (state.settings.enableSound && audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
+      setTimeout(() => setLevelUpData(null), 5000);
+    }
+
+    prevFinanceRef.current = { week: currentWeekValue, month: currentMonthValue };
+  }, [financeStats.week.totalRecebido, financeStats.month.totalRecebido, monthlyStats.weeklyNeeded, monthlyStats.goal, state.settings.enableSound]);
+
   // Celebration and Near-Goal logic
   useEffect(() => {
     const isShiftMode = state.settings.enableShiftTracking;
@@ -1013,7 +1065,59 @@ export default function App() {
     }
   }, [todayStats, currentGoal, state.settings.enableShiftTracking]);
 
+  // Reminders and Notifications
+  useEffect(() => {
+    if (!state.settings.notifications?.enabled) return;
+    
+    let lastWaterReminder = Date.now();
+    let dailyReminderSent = false;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      
+      // Daily start reminder
+      if (state.settings.notifications?.dailyReminderTime && !dailyReminderSent) {
+        const [hours, minutes] = state.settings.notifications.dailyReminderTime.split(':').map(Number);
+        if (now.getHours() === hours && now.getMinutes() === minutes) {
+          dailyReminderSent = true;
+          if (Notification.permission === 'granted') {
+            new Notification('Asfalto Meta', {
+              body: 'Hora de ir pra pista! Como está a energia para hoje?',
+              icon: '/favicon.ico'
+            });
+          }
+          toast.info('Hora de ir pra pista! Como está a energia para hoje?');
+        }
+      }
+
+      // Reset daily reminder flag at midnight
+      if (now.getHours() === 0 && now.getMinutes() === 0) {
+        dailyReminderSent = false;
+      }
+
+      // Drink water reminder (every 2 hours while working)
+      if (state.settings.notifications?.drinkWaterReminder && state.workTimer?.isRunning) {
+        if (Date.now() - lastWaterReminder >= 2 * 60 * 60 * 1000) {
+          lastWaterReminder = Date.now();
+          if (Notification.permission === 'granted') {
+            new Notification('Lembrete', {
+              body: 'Beba água! Mantenha-se hidratado durante o turno.',
+              icon: '/favicon.ico'
+            });
+          }
+          toast.info('Beba água! Mantenha-se hidratado durante o turno.');
+        }
+      }
+    }, 60000); // check every minute
+
+    return () => clearInterval(interval);
+  }, [state.settings.notifications, state.workTimer?.isRunning]);
+
   const notifyNearGoal = () => {
+    if (state.settings.notifications?.enabled && !state.settings.notifications?.goalReminder) {
+      return;
+    }
+    
     const message = "Falta pouco para você largar!";
     
     // Written notification
@@ -1022,6 +1126,13 @@ export default function App() {
       duration: 5000,
       icon: <Bike className="text-blue-500" size={18} />
     });
+
+    if (state.settings.notifications?.enabled && Notification.permission === 'granted') {
+      new Notification('Quase lá!', {
+        body: 'Falta pouco para você bater a meta. Continue focado!',
+        icon: '/favicon.ico'
+      });
+    }
 
     // Sound notification (TTS)
     if ('speechSynthesis' in window) {
@@ -1693,6 +1804,18 @@ export default function App() {
   const vaultHistoryWeek = state.vaultState?.history?.filter(h => h.date >= vaultStartOfWeekString) || [];
   const vaultTotalWeek = vaultHistoryWeek.reduce((acc, curr) => acc + curr.amount, 0);
 
+  const vaultHistoryGroupedByDay = useMemo(() => {
+    const grouped = vaultHistoryMonth.reduce((acc, curr) => {
+      if (!acc[curr.date]) acc[curr.date] = 0;
+      acc[curr.date] += curr.amount;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return Object.entries(grouped)
+      .map(([date, total]) => ({ date, total }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [vaultHistoryMonth]);
+
   return (
     <div className={`min-h-screen w-full overflow-x-hidden ${textColor} transition-colors duration-500 pb-24 relative`} style={mainBgStyle}>
       <Toaster position="top-center" theme={isDark ? 'dark' : 'light'} richColors />
@@ -2360,21 +2483,25 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <p className={`${mutedTextColor} text-lg uppercase font-mono tracking-widest flex flex-col`}>
                       <span className="text-xs opacity-70">Dinheiro Guardado</span>
-                      <span>Total Acumulado</span>
+                      <span>Hoje</span>
                     </p>
                     <div className="flex gap-2">
-                      {(state.vaultState?.currentValue || 0) > 0 && (
+                      {todayVaultValue > 0 && (
                         <button 
                           onClick={() => {
-                            if (confirm('Deseja zerar o cofre?')) {
+                            if (confirm('Deseja zerar os registros de hoje do cofre?')) {
                               setState(prev => ({
                                 ...prev,
-                                vaultState: { ...prev.vaultState, currentValue: 0, history: [] }
+                                vaultState: { 
+                                  ...prev.vaultState, 
+                                  currentValue: prev.vaultState?.currentValue || 0,
+                                  history: prev.vaultState?.history?.filter(h => h.date !== today) || []
+                                }
                               }));
                             }
                           }}
                           className={`p-1.5 rounded-xl ${subMutedTextColor} hover:text-red-500 hover:bg-red-500/10 active:scale-95 transition-all flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
-                          title="Zerar cofre"
+                          title="Zerar cofre de hoje"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -2391,7 +2518,7 @@ export default function App() {
                     </div>
                   </div>
                   <h2 className="text-5xl sm:text-6xl font-bold font-mono tracking-tight text-green-500">
-                    R$ {state.vaultState?.currentValue || 0}
+                    R$ {todayVaultValue}
                   </h2>
                   <div className="flex gap-2">
                     <button
@@ -3106,19 +3233,16 @@ export default function App() {
                 </div>
 
                 <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                  {state.vaultState.history
-                    .filter(h => h.date.startsWith(selectedMonth))
-                    .sort((a, b) => b.timestamp - a.timestamp)
-                    .map(h => (
-                    <div key={h.id} className={`flex justify-between items-center p-3 rounded-lg border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                  {vaultHistoryGroupedByDay.map(dayGroup => (
+                    <div key={dayGroup.date} className={`flex justify-between items-center p-3 rounded-lg border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex flex-col">
-                        <span className={`text-base font-bold font-mono text-green-500`}>+ R$ {h.amount}</span>
+                        <span className={`text-base font-bold font-mono text-green-500`}>R$ {dayGroup.total.toFixed(2)}</span>
                         <span className={`text-[10px] uppercase font-mono tracking-widest ${subMutedTextColor}`}>
-                          {new Date(h.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                          {new Date(dayGroup.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                         </span>
                       </div>
                       <span className={`text-[10px] uppercase font-bold tracking-widest text-green-500 bg-green-500/10 px-2 py-1 rounded`}>
-                        Guardado
+                        Acumulado do Dia
                       </span>
                     </div>
                   ))}
@@ -3894,6 +4018,142 @@ export default function App() {
               )}
             </div>
 
+            <h3 className={`text-lg font-bold uppercase tracking-widest ${mutedTextColor}`}>Avisos e Lembretes Diários</h3>
+            
+            <div className={`${cardClass} p-4 sm:p-6 space-y-4`}>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="font-bold uppercase tracking-widest text-sm">Notificações</p>
+                  <p className={`${subMutedTextColor} text-xs`}>Ativar alertas do navegador</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    const willEnable = !state.settings.notifications?.enabled;
+                    setState(prev => ({
+                      ...prev,
+                      settings: {
+                        ...prev.settings,
+                        notifications: {
+                          ...prev.settings.notifications,
+                          enabled: willEnable
+                        }
+                      }
+                    }));
+                    if (willEnable && 'Notification' in window) {
+                      Notification.requestPermission().then(perm => {
+                        if (perm !== 'granted') {
+                          toast.error('Permissão para notificações negada.');
+                          setState(prev => ({
+                            ...prev,
+                            settings: {
+                              ...prev.settings,
+                              notifications: {
+                                ...prev.settings.notifications,
+                                enabled: false
+                              }
+                            }
+                          }));
+                        } else {
+                          toast.success('Notificações ativadas com sucesso!');
+                        }
+                      });
+                    }
+                  }}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${state.settings.notifications?.enabled ? 'bg-green-500' : 'bg-white/10'}`}
+                >
+                  <motion.div 
+                    animate={{ x: state.settings.notifications?.enabled ? 24 : 4 }}
+                    className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow-lg"
+                  />
+                </button>
+              </div>
+
+              {state.settings.notifications?.enabled && (
+                <>
+                  <div className="flex items-center justify-between border-t border-white/5 pt-4">
+                    <div className="space-y-1">
+                      <p className="font-bold uppercase tracking-widest text-sm">Lembrete de Início</p>
+                      <p className={`${subMutedTextColor} text-xs`}>Avisar todos os dias neste horário</p>
+                    </div>
+                    <input 
+                      type="time" 
+                      value={state.settings.notifications?.dailyReminderTime || '08:00'}
+                      onChange={(e) => {
+                        setState(prev => ({
+                          ...prev,
+                          settings: {
+                            ...prev.settings,
+                            notifications: {
+                              ...prev.settings.notifications,
+                              enabled: prev.settings.notifications?.enabled || false,
+                              dailyReminderTime: e.target.value
+                            }
+                          }
+                        }));
+                      }}
+                      className={`p-2 rounded border font-mono ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-black/5 border-black/10 text-black'}`}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between border-t border-white/5 pt-4">
+                    <div className="space-y-1">
+                      <p className="font-bold uppercase tracking-widest text-sm">Lembrete de Água</p>
+                      <p className={`${subMutedTextColor} text-xs`}>Avisos a cada 2 horas no turno</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setState(prev => ({
+                          ...prev,
+                          settings: {
+                            ...prev.settings,
+                            notifications: {
+                              ...prev.settings.notifications,
+                              enabled: prev.settings.notifications?.enabled || false,
+                              drinkWaterReminder: !prev.settings.notifications?.drinkWaterReminder
+                            }
+                          }
+                        }));
+                      }}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${state.settings.notifications?.drinkWaterReminder ? 'bg-green-500' : 'bg-white/10'}`}
+                    >
+                      <motion.div 
+                        animate={{ x: state.settings.notifications?.drinkWaterReminder ? 24 : 4 }}
+                        className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow-lg"
+                      />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between border-t border-white/5 pt-4">
+                    <div className="space-y-1">
+                      <p className="font-bold uppercase tracking-widest text-sm">Alerta de Proximidade de Meta</p>
+                      <p className={`${subMutedTextColor} text-xs`}>Avisar quando faltar pouco</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setState(prev => ({
+                          ...prev,
+                          settings: {
+                            ...prev.settings,
+                            notifications: {
+                              ...prev.settings.notifications,
+                              enabled: prev.settings.notifications?.enabled || false,
+                              goalReminder: !prev.settings.notifications?.goalReminder
+                            }
+                          }
+                        }));
+                      }}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${state.settings.notifications?.goalReminder ? 'bg-green-500' : 'bg-white/10'}`}
+                    >
+                      <motion.div 
+                        animate={{ x: state.settings.notifications?.goalReminder ? 24 : 4 }}
+                        className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow-lg"
+                      />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
             <h3 className={`text-lg font-bold uppercase tracking-widest ${mutedTextColor}`}>Efeitos e Sons</h3>
             
             <div className={`${cardClass} p-4 sm:p-6 space-y-4`}>
@@ -4287,6 +4547,59 @@ export default function App() {
           </button>
         </div>
       </nav>
+
+      {/* Level Up Overlay */}
+      <AnimatePresence>
+        {levelUpData && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none p-6"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.2, transition: { duration: 0.4 } }}
+          >
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div 
+              className="relative z-10 flex flex-col items-center justify-center text-center space-y-6 bg-gradient-to-br from-asphalt to-black p-8 sm:p-12 rounded-[2.5rem] border border-white/10 shadow-[0_0_100px_rgba(255,255,255,0.1)] w-full max-w-sm"
+              initial={{ y: 50 }}
+              animate={{ y: 0 }}
+              transition={{ type: "spring", bounce: 0.5 }}
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                className="relative"
+              >
+                <div className="absolute inset-0 blur-3xl opacity-50 bg-current" style={{ color: levelUpData.type === 'monthly' ? '#fbbf24' : '#4ade80' }} />
+                {levelUpData.type === 'monthly' ? (
+                  <Trophy size={96} className="text-yellow-400 drop-shadow-[0_0_25px_rgba(250,204,21,0.6)] relative z-10" />
+                ) : (
+                  <Star size={96} className="text-green-400 drop-shadow-[0_0_25px_rgba(74,222,128,0.6)] relative z-10" />
+                )}
+              </motion.div>
+              
+              <div className="space-y-2">
+                <motion.h2 
+                  className="text-5xl sm:text-6xl font-black font-mono text-white tracking-tighter uppercase"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  Level Up!
+                </motion.h2>
+                <p className="text-lg sm:text-xl text-white/90 font-bold uppercase tracking-widest">
+                  Meta {levelUpData.type === 'monthly' ? 'Mensal' : 'Semanal'} Atingida
+                </p>
+              </div>
+
+              <div className="pt-6 w-full border-t border-white/10">
+                <p className="text-xs sm:text-sm text-white/50 font-mono uppercase tracking-widest mb-1">Objetivo Superado</p>
+                <p className={`text-4xl sm:text-5xl font-black font-mono tracking-tight ${levelUpData.type === 'monthly' ? 'text-yellow-400' : 'text-green-400'}`}>
+                  R$ {levelUpData.amount.toFixed(2)}
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Add/Edit Ride Modal */}
       <AnimatePresence>
