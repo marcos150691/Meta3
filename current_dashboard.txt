@@ -1,0 +1,846 @@
+        {activeTab === 'dashboard' && (
+          <motion.div 
+            {...motionProps({ opacity: 0, y: 20 }, { opacity: 1, y: 0 })}
+            className="space-y-6 pt-2"
+          >
+            {/* Work Timer Section */}
+            <div className={`${cardClass} md:col-span-12 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden ring-1 ring-white/10 rounded-xl shadow-md`}>
+              <div className="flex justify-between items-center relative z-10">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-lg ${state.workTimer?.isRunning ? 'bg-green-500/20 text-green-500' : isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500'}`}>
+                    <Clock size={16} className={state.workTimer?.isRunning ? 'animate-pulse' : ''} />
+                  </div>
+                  <div>
+                    <p className={`${mutedTextColor} text-[9px] uppercase font-mono tracking-widest`}>Controle de Jornada</p>
+                    <p className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tighter">
+                      {formatElapsedTime(elapsedTime)}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-1.5">
+                  <button 
+                    onClick={resetTimer}
+                    className={`p-2 rounded-xl ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-slate-100 hover:bg-slate-200 border border-slate-300'} ${subMutedTextColor} transition-colors`}
+                    title="Reiniciar (Limpa sem salvar)"
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                  <button 
+                    onClick={stopTimer}
+                    className={`p-2 rounded-xl ${isDark ? 'bg-red-500/10 hover:bg-red-500/20 text-red-500' : 'bg-red-50 hover:bg-red-100 text-red-600'} transition-colors`}
+                    title="Parar e Salvar"
+                  >
+                    <Square size={16} fill="currentColor" />
+                  </button>
+                  <button 
+                    onClick={toggleTimer}
+                    className={`p-2.5 rounded-xl transition-all shadow-lg active:scale-95 ${state.workTimer?.isRunning ? 'bg-orange-500 text-white shadow-orange-500/20' : 'bg-green-500 text-white shadow-green-500/20'}`}
+                    title={state.workTimer?.isRunning ? 'Pausar' : 'Iniciar'}
+                  >
+                    {state.workTimer?.isRunning ? <Pause size={18} /> : <Play size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Shift Selector for Timer */}
+              {state.settings.enableShiftTracking && (
+                <div className="space-y-3 mb-1">
+                  <div>
+                    <span className={`text-[8px] font-mono font-bold uppercase tracking-widest block mb-1 ${subMutedTextColor}`}>
+                      Turno do Temporizador (Timer):
+                    </span>
+                    <div className="flex gap-1.5">
+                      {(['dia inteiro', 'manhã', 'tarde', 'noite'] as const).map(shift => (
+                        <button
+                          key={shift}
+                          onClick={() => setTimerShift(shift)}
+                          disabled={state.workTimer?.isRunning}
+                          className={`flex-1 py-1.5 px-0.5 rounded-xl text-[9px] uppercase font-mono font-bold tracking-tight transition-all ${
+                            state.workTimer?.currentShift === shift
+                              ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                              : isDark ? 'bg-white/5 text-white/40 hover:bg-white/10' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/50'
+                          } ${state.workTimer?.isRunning ? 'opacity-50 cursor-not-allowed border border-white/5' : ''}`}
+                        >
+                          {shift === 'dia inteiro' ? 'Dia' : shift}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {!state.finalizedDays?.includes(today) && (
+                    <div className={`pt-2 border-t border-dashed ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+                      <span className={`text-[8px] font-mono font-bold uppercase tracking-widest block mb-1 ${subMutedTextColor}`}>
+                        Turno de Rodar (Registrar Corridas em):
+                      </span>
+                      <div className="flex gap-1.5">
+                        {(['manhã', 'tarde', 'noite'] as const).map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => setRegistrationShift(s)}
+                            className={`flex-1 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all border ${
+                              registrationShift === s 
+                                ? isDark ? 'bg-white text-black border-white font-bold' : 'bg-black text-white border-black font-bold shadow-md'
+                                : isDark ? 'bg-white/5 text-white/40 border-white/5 hover:bg-white/10' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 shadow-sm'
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {state.workTimer?.isRunning && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="flex items-center gap-2"
+                >
+                  <div className="flex-1 h-0.5 bg-green-500/20 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-green-500"
+                      initial={{ x: '-100%' }}
+                      animate={{ x: '100%' }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                    />
+                  </div>
+                  <span className="text-[7px] font-mono uppercase tracking-[0.2em] text-green-500/60 font-bold whitespace-nowrap">Em serviço</span>
+                </motion.div>
+              )}
+
+              {/* Display Start, Pause and Stop Times */}
+              {(state.workTimer?.startedAt || state.workTimer?.pausedAt || state.workTimer?.stoppedAt) && (
+                <div className={`mt-1.5 p-2 rounded-xl flex flex-wrap items-center justify-around gap-2 text-[10px] font-mono border ${isDark ? 'bg-white/5 border-white/5 text-white/70' : 'bg-slate-100 border-slate-200 text-slate-800'}`}>
+                  {state.workTimer?.startedAt && (
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                      <span className="opacity-60">Início:</span>
+                      <strong className={isDark ? 'text-white/90' : 'text-slate-950 font-bold'}>{state.workTimer.startedAt}</strong>
+                    </div>
+                  )}
+                  {state.workTimer?.pausedAt && (
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                      <span className="opacity-60">Pausa:</span>
+                      <strong className={isDark ? 'text-white/90' : 'text-slate-950 font-bold'}>{state.workTimer.pausedAt}</strong>
+                    </div>
+                  )}
+                  {state.workTimer?.stoppedAt && (
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                      <span className="opacity-60">Larguei:</span>
+                      <strong className={isDark ? 'text-white/90' : 'text-slate-950 font-bold'}>{state.workTimer.stoppedAt}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Completed Journeys list for Today (Fixed on Controle de Jornada) */}
+              {state.dailyJourneys?.[today] && Object.keys(state.dailyJourneys[today]).length > 0 && (
+                <div className="mt-3 space-y-2 border-t border-dashed pt-3 border-slate-300 dark:border-white/10">
+                  <p className={`text-[9px] font-mono font-bold uppercase tracking-widest block ${subMutedTextColor}`}>
+                    Resumo de Horas Trabalhadas Hoje (Fixo):
+                  </p>
+                  {Object.entries(state.dailyJourneys[today]).map(([shift, ms]) => {
+                    if (ms === 0) return null;
+                    const isNewest = state.lastStoppedJourney && state.lastStoppedJourney.date === today && state.lastStoppedJourney.shift === shift;
+                    return (
+                      <div 
+                        key={shift} 
+                        className={`p-3 rounded-xl border flex flex-col gap-1.5 transition-all ${
+                          isNewest
+                            ? isDark 
+                              ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 font-bold shadow-[0_0_15px_rgba(16,185,129,0.1)] ring-1 ring-emerald-500/20' 
+                              : 'bg-emerald-50 border-emerald-400 text-emerald-950 font-bold shadow-sm'
+                            : isDark 
+                              ? 'bg-white/5 border-white/5 text-white/80' 
+                              : 'bg-slate-50 border-slate-300 text-slate-900'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className={`text-[10px] uppercase font-mono font-bold tracking-widest flex items-center gap-1.5 ${isNewest ? 'text-emerald-500' : isDark ? 'text-white/60' : 'text-slate-600'}`}>
+                            <span>🎉 {isNewest ? 'Último Registro' : 'Jornada Concluída'}</span>
+                          </span>
+                          <span className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-full border ${
+                            isNewest 
+                              ? 'bg-emerald-500/20 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+                              : 'bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400'
+                          } font-bold`}>
+                            {shift === 'dia inteiro' ? 'Dia Semanal' : shift}
+                          </span>
+                        </div>
+                        <p className={`text-xs ${isDark ? 'text-white/90' : 'text-black font-semibold'}`}>
+                          Parabéns! Você trabalhou <strong className="font-extrabold font-mono text-sm">{formatFriendlyDuration(ms)}</strong> no turno de <span className="capitalize">{shift === 'dia inteiro' ? 'Dia Inteiro' : shift}</span>.
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Shift Selector */}
+            {state.settings.enableShiftTracking && (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {(['manhã', 'tarde', 'noite', 'dia'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setDashboardShift(s)}
+                      className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap border ${
+                        dashboardShift === s 
+                          ? isDark ? 'bg-white text-black border-white' : 'bg-black text-white border-black'
+                          : isDark ? 'bg-white/5 text-white/40 border-white/5' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                      }`}
+                    >
+                      {s === 'dia' ? 'Dia' : s}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Finalize Day Section */}
+                {!state.finalizedDays?.includes(today) ? (
+                  (dashboardShift === 'dia' || dashboardShift === 'noite') && (
+                    <button 
+                      onClick={() => {
+                        const now = new Date();
+                        const hours = now.getHours();
+                        const minutes = now.getMinutes();
+                        const isReady = (hours === 23 && minutes >= 50);
+                        if (!isReady) {
+                          toast.error("Este turno só pode ser finalizado após as 23:50.");
+                          return;
+                        }
+                        finalizeDay();
+                      }}
+                      className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[11px] transition-all transform active:scale-[0.98]
+                        ${(new Date().getHours() === 23 && new Date().getMinutes() >= 50) 
+                          ? 'bg-orange-500 text-white shadow-xl shadow-orange-500/30 ring-2 ring-orange-500/50' 
+                          : isDark ? 'bg-white/5 text-white/20 border border-white/5' : 'bg-slate-100 text-slate-400 border border-slate-300'}`}
+                    >
+                      <CheckCircle2 size={18} />
+                      Finalizar Entradas ({dashboardShift === 'dia' ? 'Dia Inteiro' : 'Noite'})
+                    </button>
+                  )
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`p-6 ${isDark ? 'bg-green-500/10' : 'bg-green-50'} border border-green-500/20 rounded-3xl text-center space-y-3`}
+                  >
+                    <div className="w-12 h-12 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <CheckCircle2 size={24} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-widest text-green-500">Dia Finalizado</p>
+                      <p className={`${subMutedTextColor} text-[10px] mt-1`}>Todos os dados deste dia foram arquivados com sucesso.</p>
+                    </div>
+                    <button 
+                      onClick={() => undoFinalizeDay(today)}
+                      className="px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors"
+                    >
+                      Reabrir Dia
+                    </button>
+                  </motion.div>
+                )}
+
+
+              </div>
+            )}
+
+            {/* Progress Cards */}
+            {/* Count Goal */}
+            <div className={`${cardClass} md:col-span-4 p-4 sm:p-5 space-y-4 rounded-xl shadow-sm border border-white/10`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className={`${mutedTextColor} text-lg uppercase font-mono tracking-widest`}>
+                        {state.settings.enableShiftTracking ? `Corridas - ${todayStats.currentShift}` : 'Total de Corridas'}
+                      </p>
+                      {state.history.length > 0 && (
+                        <button 
+                          onClick={undo}
+                          className={`${subMutedTextColor} hover:text-white transition-colors`}
+                          title="Desfazer última ação"
+                        >
+                          <RotateCcw size={12} />
+                        </button>
+                      )}
+                    </div>
+                    <h2 className="text-5xl sm:text-7xl font-bold font-mono tracking-tight">
+                      {targetCount}
+                      <span className={`${subMutedTextColor} text-2xl sm:text-3xl`}>
+                        /{targetCountGoal}
+                      </span>
+                    </h2>
+                    {state.settings.enableShiftTracking && (
+                      <p className={`${subMutedTextColor} text-[10px] font-mono mt-1 uppercase tracking-widest`}>
+                        Total do dia: <span className="font-bold" style={getStyle(state.settings.theme.headerColor, true)}>{todayStats.count}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className={`p-2 rounded-full ${countProgress >= 100 ? 'bg-green-500/20 text-green-500' : isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                    {countProgress >= 100 ? <CheckCircle2 size={24} className={state.settings.enableAnimation ? "animate-bounce" : ""} /> : <CheckCircle2 size={24} />}
+                  </div>
+                </div>
+                
+                {countProgress >= 100 && (
+                  state.settings.enableAnimation ? (
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-green-500/10 border border-green-500/20 rounded-lg p-2 text-center"
+                    >
+                      <p className="text-xs font-bold text-green-500 uppercase tracking-widest">🏆 Meta de Corridas Batida!</p>
+                    </motion.div>
+                  ) : (
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2 text-center">
+                      <p className="text-xs font-bold text-green-500 uppercase tracking-widest">🏆 Meta de Corridas Batida!</p>
+                    </div>
+                  )
+                )}
+                
+                <div className="space-y-2">
+                  <div className={`h-3 w-full rounded-full relative ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
+                    {state.settings.enableAnimation ? (
+                      <motion.div 
+                        className="progress-bar-fill relative"
+                        style={getStyle(state.settings.theme.countBarColor)}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${countProgress}%` }}
+                      >
+                        {countProgress > 0 && <WheelieBike />}
+                      </motion.div>
+                    ) : (
+                      <div 
+                        className="progress-bar-fill relative"
+                        style={{ 
+                          ...getStyle(state.settings.theme.countBarColor),
+                          width: `${countProgress}%`
+                        }}
+                      >
+                        {countProgress > 0 && <WheelieBike />}
+                      </div>
+                    )}
+                  </div>
+                  <div className={`flex justify-between text-sm font-mono ${subMutedTextColor} uppercase tracking-tighter`}>
+                    <span>Início</span>
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-2">
+                        <span>{countProgress.toFixed(0)}% Concluído</span>
+                        {state.history.length > 0 && (
+                          <button 
+                            onClick={undo}
+                            className={`underline ${isDark ? 'hover:text-white' : 'hover:text-black'} transition-colors`}
+                          >
+                            Desfazer
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1">
+                        {targetCount < targetCountGoal ? (
+                          <span className={`${isDark ? 'text-white' : 'text-slate-900'} font-bold text-xl`}>Faltam {targetCountGoal - targetCount} corridas</span>
+                        ) : (
+                          <span className="text-green-500 font-bold">Meta Batida! (+{targetCount - targetCountGoal} extra)</span>
+                        )}
+                      </div>
+                    </div>
+                    <span>Meta</span>
+                  </div>
+
+                  {/* Quick Buttons for Count */}
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <button 
+                      onClick={() => quickAddRide(0, 'Corrida +1')}
+                      className={`flex-1 py-3 px-4 rounded-lg text-lg font-bold uppercase tracking-widest transition-colors border ${
+                        isDark 
+                          ? 'border-white/10 bg-white/5 hover:bg-white/10' 
+                          : 'border-slate-300 bg-slate-50 hover:bg-slate-150 active:bg-slate-200 shadow-sm'
+                      }`}
+                      style={getStyle(state.settings.theme.countBarColor, true)}
+                    >
+                      +1
+                    </button>
+                    <button 
+                      onClick={() => {
+                        quickAddRide(0, 'Corrida +1');
+                        quickAddRide(0, 'Corrida +1');
+                      }}
+                      className={`flex-1 py-3 px-4 rounded-lg text-lg font-bold uppercase tracking-widest transition-colors border ${
+                        isDark 
+                          ? 'border-white/10 bg-white/5 hover:bg-white/10' 
+                          : 'border-slate-300 bg-slate-50 hover:bg-slate-150 active:bg-slate-200 shadow-sm'
+                      }`}
+                      style={getStyle(state.settings.theme.countBarColor, true)}
+                    >
+                      +2
+                    </button>
+                    <button 
+                      onClick={() => {
+                        quickAddRide(0, 'Corrida +1');
+                        quickAddRide(0, 'Corrida +1');
+                        quickAddRide(0, 'Corrida +1');
+                      }}
+                      className={`flex-1 py-3 px-4 rounded-lg text-lg font-bold uppercase tracking-widest transition-colors border ${
+                        isDark 
+                          ? 'border-white/10 bg-white/5 hover:bg-white/10' 
+                          : 'border-slate-300 bg-slate-50 hover:bg-slate-150 active:bg-slate-200 shadow-sm'
+                      }`}
+                      style={getStyle(state.settings.theme.countBarColor, true)}
+                    >
+                      +3
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Value Goal */}
+              <div className={`${cardClass} md:col-span-4 p-4 sm:p-5 space-y-4 rounded-xl shadow-sm border border-white/10`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className={`${mutedTextColor} text-lg uppercase font-mono tracking-widest`}>
+                        {state.settings.enableShiftTracking ? `Faturamento - ${todayStats.currentShift}` : 'Faturamento Diário'}
+                      </p>
+                      {state.history.length > 0 && (
+                        <button 
+                          onClick={undo}
+                          className={`${subMutedTextColor} hover:text-white transition-colors`}
+                          title="Desfazer última ação"
+                        >
+                          <RotateCcw size={12} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      {state.settings.enableAnimation ? (
+                        <motion.h2 
+                          key={targetValue}
+                          initial={{ scale: 0.95 }}
+                          animate={{ scale: 1 }}
+                          className="text-5xl sm:text-7xl font-bold font-mono tracking-tight"
+                        >
+                          R$ {targetValue.toFixed(2)}
+                          <span className={`${subMutedTextColor} text-2xl sm:text-3xl`}>
+                            /{targetValueGoal}
+                          </span>
+                        </motion.h2>
+                      ) : (
+                        <h2 className="text-5xl sm:text-7xl font-bold font-mono tracking-tight">
+                          R$ {targetValue.toFixed(2)}
+                          <span className={`${subMutedTextColor} text-2xl sm:text-3xl`}>
+                            /{targetValueGoal}
+                          </span>
+                        </h2>
+                      )}
+                      
+                      {state.settings.enableShiftTracking && (
+                        <p className={`${subMutedTextColor} text-[10px] font-mono mt-1 uppercase tracking-widest`}>
+                          Total do dia: <span className="font-bold" style={getStyle(state.settings.theme.valueBarColor, true)}>R$ {todayStats.value.toFixed(2)}</span>
+                        </p>
+                      )}
+                      
+                      <AnimatePresence>
+                        {showFloatingValue && lastAddedValue && (
+                          <>
+                            {/* Coins entering the wallet */}
+                            {coinPaths.map((path, idx) => (
+                              <motion.div
+                                key={idx}
+                                initial={{ 
+                                  left: path.x[0], 
+                                  top: path.y[0], 
+                                  opacity: 0, 
+                                  scale: path.scale[0],
+                                  rotate: 0 
+                                }}
+                                animate={{ 
+                                  left: path.x, 
+                                  top: path.y, 
+                                  opacity: [0, 1, 1, 0],
+                                  scale: path.scale,
+                                  rotate: path.rotate 
+                                }}
+                                transition={{ 
+                                  duration: path.duration,
+                                  delay: path.delay,
+                                  ease: "easeOut"
+                                }}
+                                className="absolute pointer-events-none z-30 w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-600 via-amber-400 to-yellow-200 border-2 border-amber-300 shadow-md flex items-center justify-center text-[9px] font-black text-amber-950 font-mono"
+                                style={{
+                                  boxShadow: '0 0 8px rgba(245, 158, 11, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
+                                }}
+                              >
+                                $
+                              </motion.div>
+                            ))}
+
+                            {/* Floating values popping from the wallet */}
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.5, y: 0 }}
+                              animate={{ opacity: [0, 1, 1, 0], scale: [1, 1.3, 1], y: -45 }}
+                              transition={{ duration: 1.2, delay: 0.6 }}
+                              className="absolute top-[8%] right-[5%] font-bold text-2xl text-green-400 pointer-events-none z-50 font-mono"
+                              style={{ textShadow: '0 0 15px rgba(74, 222, 128, 0.6)' }}
+                            >
+                              +R$ {lastAddedValue.toFixed(2)}
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                  <motion.div 
+                    animate={showFloatingValue && state.settings.enableAnimation ? {
+                      scale: [1, 1.25, 0.95, 1.15, 1],
+                      rotate: [0, -10, 10, -5, 5, 0],
+                    } : {}}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                    className={`p-2 rounded-full relative z-20 ${valueProgress >= 100 ? 'bg-green-500/25 text-green-400 border border-green-500/20' : isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}
+                  >
+                    <Wallet size={24} className={valueProgress >= 100 && state.settings.enableAnimation ? "animate-bounce" : ""} />
+                  </motion.div>
+                </div>
+                
+                {valueProgress >= 100 && (
+                  state.settings.enableAnimation ? (
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-green-500/10 border border-green-500/20 rounded-lg p-2 text-center"
+                    >
+                      <p className="text-xs font-bold text-green-500 uppercase tracking-widest">🏆 Meta de Faturamento Batida!</p>
+                    </motion.div>
+                  ) : (
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2 text-center">
+                      <p className="text-xs font-bold text-green-500 uppercase tracking-widest">🏆 Meta de Faturamento Batida!</p>
+                    </div>
+                  )
+                )}
+                
+                <div className="space-y-2">
+                  <div className={`h-3 w-full rounded-full relative ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
+                    {state.settings.enableAnimation ? (
+                      <motion.div 
+                        className="progress-bar-fill relative"
+                        style={getStyle(state.settings.theme.valueBarColor)}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${valueProgress}%` }}
+                      >
+                        {valueProgress > 0 && <WheelieBike />}
+                      </motion.div>
+                    ) : (
+                      <div 
+                        className="progress-bar-fill relative"
+                        style={{ 
+                          ...getStyle(state.settings.theme.valueBarColor),
+                          width: `${valueProgress}%`
+                        }}
+                      >
+                        {valueProgress > 0 && <WheelieBike />}
+                      </div>
+                    )}
+                  </div>
+                  <div className={`flex justify-between text-sm font-mono ${subMutedTextColor} uppercase tracking-tighter`}>
+                    <span>R$ 0</span>
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-2">
+                        <span>{valueProgress.toFixed(0)}% Concluído</span>
+                        {state.history.length > 0 && (
+                          <button 
+                            onClick={undo}
+                            className={`underline ${isDark ? 'hover:text-white' : 'hover:text-black'} transition-colors`}
+                          >
+                            Desfazer
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-col items-center gap-1 sm:flex-row sm:gap-2">
+                        {targetValue < targetValueGoal ? (
+                          <span className={`${isDark ? 'text-white' : 'text-slate-900'} font-bold text-xl`}>
+                            Faltam R$ {(targetValueGoal - targetValue).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-green-500 font-bold">Meta Batida! (+R$ {(targetValue - targetValueGoal).toFixed(2)})</span>
+                        )}
+                        <span className={`${isDark ? 'text-white/20' : 'text-slate-300'} hidden sm:inline`}>•</span>
+                        <div className="text-xs sm:text-sm font-sans flex items-center gap-2">
+                          {targetCount < targetCountGoal ? (
+                            <span className={isDark ? 'text-white/70' : 'text-slate-700 font-bold'}>
+                              (Faltam <span className={`${isDark ? 'text-white' : 'text-slate-900'} font-bold`}>{targetCountGoal - targetCount}</span> corridas)
+                            </span>
+                          ) : (
+                            <span className="text-green-500/80 font-bold">(Meta de corridas batida!)</span>
+                          )}
+                          
+                          {lastAddedValue !== null && (
+                            <>
+                              <span className={`${isDark ? 'text-white/20' : 'text-slate-300'} hidden sm:inline`}>•</span>
+                              <span className={`text-[10px] font-bold uppercase tracking-widest ${subMutedTextColor}`}>
+                                Último: <span className="font-mono text-emerald-500 text-sm">R$ {lastAddedValue}</span>
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <span>R$ {state.settings.enableShiftTracking ? todayStats.currentShiftGoal.valueGoal : currentGoal.valueGoal}</span>
+                  </div>
+
+                  {/* Quick Buttons for Revenue */}
+                  <div className="grid grid-cols-5 gap-2 pt-2">
+                    <form 
+                      onSubmit={handleQuickValueSubmit}
+                      className="col-span-1 flex"
+                    >
+                      <input 
+                        type="number" 
+                        inputMode="decimal"
+                        placeholder="R$"
+                        value={quickValue}
+                        onChange={(e) => setQuickValue(e.target.value)}
+                        className={`w-full py-3 px-2 text-lg font-mono font-bold rounded-lg border ${isDark ? 'bg-white/5 border-white/10 text-white focus:border-white/30' : 'bg-slate-100 border-slate-300 text-slate-900 focus:bg-white focus:border-slate-500'} focus:outline-none transition-colors placeholder:text-[10px]`}
+                      />
+                    </form>
+                    {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
+                      <button 
+                        key={val}
+                        onClick={() => quickAddRide(val, `Corrida R$ ${val}`)}
+                        className={`py-3 px-1 rounded-lg border font-bold uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-0.5 ${isDark ? 'border-white/10 hover:bg-white/5' : 'border-slate-300 hover:bg-slate-100 active:bg-slate-200 text-slate-800 shadow-sm'}`}
+                        style={getStyle(state.settings.theme.valueBarColor, true)}
+                      >
+                        <span className="text-[10px] opacity-65 leading-none">+R$</span>
+                        <span className={`${getQuickAddNumberSizeClass()} leading-none`}>{val}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+            {/* Vault Card */}
+            <div className={`${cardClass} md:col-span-4 p-4 sm:p-5 border-t-4 border-l-0 border-green-500 overflow-hidden relative flex flex-col justify-between rounded-xl shadow-sm border-x border-b border-white/10`}>
+              <div className="flex justify-between items-center z-10 relative">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <p className={`${mutedTextColor} text-lg uppercase font-mono tracking-widest flex flex-col`}>
+                      <span className="text-xs opacity-70">Dinheiro Guardado</span>
+                      <span>Hoje</span>
+                    </p>
+                    <div className="flex gap-2">
+                      {todayVaultValue > 0 && (
+                        <button 
+                          onClick={() => {
+                            if (confirm('Deseja zerar os registros de hoje do cofre?')) {
+                              setState(prev => ({
+                                ...prev,
+                                vaultState: { 
+                                  ...prev.vaultState, 
+                                  currentValue: prev.vaultState?.currentValue || 0,
+                                  history: prev.vaultState?.history?.filter(h => h.date !== today) || []
+                                }
+                              }));
+                            }
+                          }}
+                          className={`p-1.5 rounded-xl ${subMutedTextColor} hover:text-red-500 hover:bg-red-500/10 active:scale-95 transition-all flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
+                          title="Zerar cofre de hoje"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                      {(state.vaultState?.history?.length || 0) > 0 && (
+                        <button
+                          onClick={undoVault}
+                          className={`p-1.5 rounded-xl ${subMutedTextColor} hover:text-white transition-all flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
+                          title="Desfazer última ação"
+                        >
+                          <RotateCcw size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <h2 className="text-5xl sm:text-6xl font-bold font-mono tracking-tight text-green-500">
+                    R$ {todayVaultValue}
+                  </h2>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => addToVault(1)}
+                      className={`flex-1 py-2 px-4 rounded-lg font-bold transition-all border shadow-sm flex items-center justify-center gap-1 bg-green-500 text-white hover:bg-green-600 active:scale-95 border-green-600`}
+                    >
+                      <Plus size={16} /> R$ 1
+                    </button>
+                    <button
+                      onClick={() => addToVault(2)}
+                      className={`flex-1 py-2 px-4 rounded-lg font-bold transition-all border shadow-sm flex items-center justify-center gap-1 bg-green-500 text-white hover:bg-green-600 active:scale-95 border-green-600`}
+                    >
+                      <Plus size={16} /> R$ 2
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`${subMutedTextColor} text-xs font-bold uppercase tracking-widest`}>Meta Diária:</span>
+                    <input
+                      type="number"
+                      value={state.vaultState?.goal === undefined ? 100 : (state.vaultState.goal || '')}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setState(prev => ({
+                          ...prev,
+                          vaultState: { ...prev.vaultState, goal: val, currentValue: prev.vaultState?.currentValue || 0 }
+                        }));
+                      }}
+                      className={`w-20 p-1 text-center font-mono font-bold text-sm rounded-lg border ${isDark ? 'bg-white/10 border-white/10 text-white' : 'bg-black/5 border-black/10 text-black'} focus:outline-none focus:border-white/30`}
+                      placeholder="Ex: 100"
+                    />
+                  </div>
+                </div>
+                
+                {/* Vault Animation Container */}
+                <div className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-4 ${isDark ? 'bg-black/40 border-white/10' : 'bg-slate-200 border-slate-300'} shadow-inner flex-shrink-0`}>
+                  
+                  {/* Dropping Coins Overlay (New identical to Faturamento) */}
+                  <AnimatePresence>
+                    {showVaultFloatingValue && lastVaultAddedValue && (
+                      <>
+                        {vaultCoinPaths.map((path, idx) => (
+                          <motion.div
+                            key={idx}
+                            initial={{ 
+                              left: path.x[0], 
+                              top: path.y[0], 
+                              opacity: 0, 
+                              scale: path.scale[0],
+                              rotate: 0 
+                            }}
+                            animate={{ 
+                              left: path.x, 
+                              top: path.y, 
+                              opacity: [0, 1, 1, 0],
+                              scale: path.scale,
+                              rotate: path.rotate 
+                            }}
+                            transition={{ 
+                              duration: path.duration, 
+                              delay: path.delay,
+                              ease: "easeInOut"
+                            }}
+                            className="absolute z-20 text-yellow-500 font-extrabold font-mono flex items-center justify-center bg-yellow-300 rounded-full w-8 h-8 border-2 border-yellow-600 shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                          >
+                            $
+                          </motion.div>
+                        ))}
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5, y: 0 }}
+                          animate={{ opacity: [0, 1, 1, 0], scale: [1, 1.3, 1], y: -45 }}
+                          transition={{ duration: 1.2, delay: 0.6 }}
+                          className="absolute top-[20%] right-[10%] font-bold text-xl sm:text-2xl text-green-400 pointer-events-none z-50 font-mono"
+                          style={{ textShadow: '0 0 15px rgba(74, 222, 128, 0.6)' }}
+                        >
+                          +R$ {lastVaultAddedValue.toFixed(2)}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+
+                  <div 
+                    className="absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-out bg-green-500"
+                    style={{ 
+                      height: `${vaultProgress}%`,
+                      opacity: 0.85
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      {vaultMoney.map(money => (
+                        <div
+                          key={money.id}
+                          className="absolute text-green-100 font-bold font-mono drop-shadow-md"
+                          style={{
+                            left: `${money.left}%`,
+                            fontSize: `${money.size}px`,
+                            animation: `float-bubble ${money.duration}s infinite linear, bubble-sway ${money.swayDuration}s infinite ease-in-out`,
+                            animationDelay: `${money.delay}s`,
+                          }}
+                        >
+                          $
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center mix-blend-overlay opacity-30">
+                    <Vault size={60} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Shift Breakdown */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {(['manhã', 'tarde', 'noite'] as const).map((s) => (
+                <div key={s} className={`${cardClass} p-3 sm:p-4 flex flex-col items-center justify-center text-center space-y-1 rounded-xl shadow-sm border border-white/5`}>
+                  <p className={`${subMutedTextColor} text-[8px] sm:text-[10px] uppercase font-mono tracking-tighter`}>{s}</p>
+                  <p className="text-lg sm:text-xl font-bold font-mono">{todayStats.shifts[s].count}</p>
+                  <p className={`${mutedTextColor} text-[8px] sm:text-[10px] font-mono`}>R$ {todayStats.shifts[s].value.toFixed(0)}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Recent Rides */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className={`text-sm font-bold uppercase tracking-widest ${mutedTextColor}`}>Corridas de Hoje</h3>
+                {!state.finalizedDays?.includes(today) && (
+                  <div className="flex items-center gap-2">
+                    <form onSubmit={handleQuickValueSubmit} className="flex items-center gap-1">
+                      <input 
+                        type="number" 
+                        inputMode="decimal"
+                        placeholder="R$ Rápido"
+                        value={quickValue}
+                        onChange={(e) => setQuickValue(e.target.value)}
+                        className={`w-24 h-8 px-2 text-xs font-mono font-bold rounded-lg border ${isDark ? 'bg-white/5 border-white/10 text-white focus:border-white/30' : 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white focus:border-slate-500'} focus:outline-none transition-colors`}
+                      />
+                      <button 
+                        type="submit"
+                        className={`p-1.5 rounded-lg transition-colors border ${isDark ? 'bg-white/10 hover:bg-white/20 border-white/5' : 'bg-slate-100 hover:bg-slate-200 border-slate-300'}`}
+                        title="Adicionar rápido"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </form>
+                    <div className={`w-px h-4 mx-1 ${isDark ? 'bg-white/10' : 'bg-slate-350'}`} />
+                    {state.history.length > 0 && (
+                      <button 
+                        onClick={undo}
+                        className={`flex items-center gap-1 text-xs font-bold uppercase tracking-tighter ${subMutedTextColor} ${isDark ? 'hover:text-white' : 'hover:text-slate-900'} transition-colors`}
+                        title="Desfazer última ação"
+                      >
+                        <RotateCcw size={14} />
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => {
+                        setNewRideShift(registrationShift);
+                        setIsAddingRide(true);
+                      }}
+                      className="p-1.5 rounded-lg transition-colors"
+                      style={getStyle(state.settings.theme.headerColor)}
+                      title="Adicionar detalhado"
+                    >
+                      <Plus size={16} className="text-white" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {todayRides.filter(r => !state.settings.enableShiftTracking || dashboardShift === 'dia' || r.shift === dashboardShift).length === 0 ? (
+                  <div className={`${cardClass} p-8 text-center border-dashed border-2 ${isDark ? 'border-white/5' : 'border-slate-300'}`}>
+                    <p className={`${subMutedTextColor} text-sm italic`}>Nenhuma corrida registrada {dashboardShift !== 'dia' ? `no turno ${dashboardShift}` : 'hoje'}.</p>
+                  </div>
+                ) : (
+                  todayRides.filter(r => !state.settings.enableShiftTracking || dashboardShift === 'dia' || r.shift === dashboardShift).map(ride => (
+                    <motion.div 
+                      key={ride.id}
+                      layout={state.settings.enableAnimation}
